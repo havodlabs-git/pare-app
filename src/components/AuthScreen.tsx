@@ -6,15 +6,13 @@ import { Label } from "./ui/label";
 import { Logo } from "./Logo";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
 
-interface AuthScreenProps {
-  onLogin: (email: string, password: string) => void;
-  onRegister: (email: string, password: string, name: string) => void;
-}
-
-export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
+export function AuthScreen() {
+  const { login, register, loading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -22,7 +20,7 @@ export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
     confirmPassword: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validações
@@ -46,10 +44,28 @@ export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
       return;
     }
 
-    if (isLogin) {
-      onLogin(formData.email, formData.password);
-    } else {
-      onRegister(formData.email, formData.password, formData.name);
+    setIsSubmitting(true);
+
+    try {
+      if (isLogin) {
+        const result = await login(formData.email, formData.password);
+        if (result.success) {
+          toast.success("Login realizado com sucesso!");
+        } else {
+          toast.error(result.message || "Erro ao fazer login");
+        }
+      } else {
+        const result = await register(formData.name, formData.email, formData.password);
+        if (result.success) {
+          toast.success("Conta criada com sucesso!");
+        } else {
+          toast.error(result.message || "Erro ao criar conta");
+        }
+      }
+    } catch (error) {
+      toast.error("Erro ao processar requisição");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -82,135 +98,126 @@ export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
                 <span className="text-2xl">🏆</span>
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-2">Conquiste achievements</h3>
-                <p className="text-gray-300">Desbloqueie conquistas e suba de nível conforme avança</p>
+                <h3 className="text-xl font-semibold mb-2">Conquiste suas metas</h3>
+                <p className="text-gray-300">Ganhe pontos, suba de nível e desbloqueie conquistas</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
-                <span className="text-2xl">🤝</span>
+                <span className="text-2xl">👥</span>
               </div>
               <div>
                 <h3 className="text-xl font-semibold mb-2">Comunidade de apoio</h3>
-                <p className="text-gray-300">Compartilhe sua jornada e receba motivação de outros membros</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-white/20">
-            <p className="text-sm text-gray-400">
-              Junte-se a milhares de pessoas que estão transformando suas vidas
-            </p>
-            <div className="flex items-center gap-6 mt-4">
-              <div>
-                <p className="text-3xl font-bold">10K+</p>
-                <p className="text-sm text-gray-400">Usuários ativos</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold">500K+</p>
-                <p className="text-sm text-gray-400">Dias limpos</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold">95%</p>
-                <p className="text-sm text-gray-400">Taxa de sucesso</p>
+                <p className="text-gray-300">Compartilhe sua jornada e inspire outras pessoas</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Side - Auth Form */}
-        <Card className="p-8 bg-white/95 backdrop-blur-sm shadow-2xl">
-          <div className="mb-8">
-            <div className="flex md:hidden justify-center mb-6">
+        <Card className="p-8 bg-white/95 backdrop-blur-sm">
+          <div className="md:hidden mb-6 text-center">
+            <div className="flex justify-center mb-4">
               <Logo size="lg" />
             </div>
-            <h2 className="text-3xl font-bold mb-2">
-              {isLogin ? "Bem-vindo de volta!" : "Comece sua jornada"}
+            <h1 className="text-3xl font-bold mb-1">Pare!</h1>
+            <p className="text-gray-600">Transforme seus hábitos</p>
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-2">
+              {isLogin ? "Bem-vindo de volta!" : "Crie sua conta"}
             </h2>
             <p className="text-gray-600">
-              {isLogin 
-                ? "Entre na sua conta para continuar seu progresso" 
-                : "Crie sua conta e transforme seus hábitos"
-              }
+              {isLogin
+                ? "Entre para continuar sua jornada"
+                : "Comece sua transformação hoje"}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">
-                  Nome completo
-                </Label>
+                <Label htmlFor="name">Nome completo</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Como você se chama?"
+                    placeholder="Digite seu nome"
+                    className="pl-10"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="pl-11 h-12"
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                E-mail
-              </Label>
+              <Label htmlFor="email">E-mail</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="seu@email.com"
+                  className="pl-10"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-11 h-12"
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
-                Senha
-              </Label>
+              <Label htmlFor="password">Senha</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
+                  className="pl-10 pr-10"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-11 pr-11 h-12"
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirmar senha
-                </Label>
+                <Label htmlFor="confirmPassword">Confirmar senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <Input
                     id="confirmPassword"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
+                    className="pl-10"
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="pl-11 h-12"
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
                   />
                 </div>
               </div>
@@ -218,42 +225,31 @@ export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
 
             <Button
               type="submit"
-              className="w-full h-12 text-base bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 shadow-lg"
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              size="lg"
+              disabled={isSubmitting || loading}
             >
-              {isLogin ? "Entrar" : "Criar conta"}
-              <ArrowRight className="w-5 h-5 ml-2" />
+              {isSubmitting ? (
+                "Processando..."
+              ) : (
+                <>
+                  {isLogin ? "Entrar" : "Criar conta"}
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              {isLogin ? "Não tem uma conta?" : "Já tem uma conta?"}{" "}
-              <button
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setFormData({ name: "", email: "", password: "", confirmPassword: "" });
-                }}
-                className="text-purple-600 font-semibold hover:text-purple-700"
-              >
-                {isLogin ? "Cadastre-se grátis" : "Faça login"}
-              </button>
-            </p>
-          </div>
-
-          {isLogin && (
-            <div className="mt-4 text-center">
-              <button className="text-sm text-gray-500 hover:text-gray-700">
-                Esqueceu a senha?
-              </button>
-            </div>
-          )}
-
-          <div className="mt-8 pt-6 border-t">
-            <p className="text-xs text-gray-500 text-center">
-              Ao criar uma conta, você concorda com nossos{" "}
-              <a href="#" className="text-purple-600 hover:underline">Termos de Uso</a> e{" "}
-              <a href="#" className="text-purple-600 hover:underline">Política de Privacidade</a>
-            </p>
+            <button
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-purple-600 hover:text-purple-700 font-medium"
+              disabled={isSubmitting}
+            >
+              {isLogin
+                ? "Não tem uma conta? Cadastre-se"
+                : "Já tem uma conta? Faça login"}
+            </button>
           </div>
         </Card>
       </div>

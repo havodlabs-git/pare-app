@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "./context/AuthContext";
 import { AuthScreen } from "./components/AuthScreen";
 import { Onboarding } from "./components/Onboarding";
 import { ModernDashboard } from "./components/ModernDashboard";
@@ -73,13 +74,8 @@ const moduleConfig = {
 };
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem(CURRENT_USER_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return null;
-  });
+  const { user, isAuthenticated, logout: authLogout, loading } = useAuth();
+  const currentUser = user;
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     if (currentUser) {
@@ -215,9 +211,8 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setCurrentUser(null);
+    authLogout();
     setUserProfile(null);
-    localStorage.removeItem(CURRENT_USER_KEY);
     toast.info("Você saiu da sua conta");
   };
 
@@ -363,8 +358,19 @@ export default function App() {
   };
 
   // Show auth screen if no user is logged in
-  if (!currentUser) {
-    return <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen />;
   }
 
   // Show onboarding if user has no profile (first time or after reset)
