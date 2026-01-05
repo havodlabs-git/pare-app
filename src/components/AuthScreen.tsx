@@ -5,11 +5,12 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Logo } from "./Logo";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 
 export function AuthScreen() {
   const { login, register, loading } = useAuth();
+  const toast = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -13,8 +13,7 @@ import { LogoWithText } from "./components/Logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./components/ui/alert-dialog";
 import { Home, Award, BarChart3, MessageSquare, LogOut, User, CreditCard } from "lucide-react";
-import { toast } from "sonner";
-import { Toaster } from "./components/ui/sonner";
+import { useToast } from "./context/ToastContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./components/ui/dropdown-menu";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
@@ -75,6 +74,7 @@ const moduleConfig = {
 
 export default function App() {
   const { user, isAuthenticated, logout: authLogout, loading } = useAuth();
+  const toast = useToast();
   const currentUser = user;
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
@@ -370,22 +370,12 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <>
-        <Toaster position="top-right" richColors closeButton />
-        <AuthScreen />
-      </>
-    );
+    return <AuthScreen />;
   }
 
   // Show onboarding if user has no profile (first time or after reset)
   if (!userProfile || userProfile.modules.length === 0) {
-    return (
-      <>
-        <Toaster position="top-right" richColors closeButton />
-        <Onboarding onComplete={handleFirstModuleSelection} />
-      </>
-    );
+    return <Onboarding onComplete={handleFirstModuleSelection} />;
   }
 
   const currentModule = userProfile.modules.find(m => m.moduleId === userProfile.currentModuleId);
@@ -395,9 +385,7 @@ export default function App() {
   const maxModules = userProfile.plan === "free" ? 1 : userProfile.plan === "premium" ? 3 : 999;
 
   return (
-    <>
-      <Toaster position="top-right" richColors closeButton />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
@@ -585,6 +573,5 @@ export default function App() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-    </>
   );
 }
