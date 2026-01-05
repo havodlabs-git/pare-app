@@ -121,10 +121,10 @@ export function Dashboard({
         </Button>
         <Button 
           onClick={onReset} 
-          variant="outline" 
-          className="h-14 border-border hover:bg-secondary"
+          className="h-14 bg-[#10B981] hover:bg-[#059669] text-white"
         >
-          Resetar Progresso
+          <Check className="w-5 h-5 mr-2" />
+          Hoje Estou Limpo
         </Button>
       </div>
     </div>
