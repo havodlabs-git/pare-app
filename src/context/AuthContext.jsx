@@ -52,10 +52,13 @@ export const AuthProvider = ({ children }) => {
         return { success: true, user: response.data.user };
       }
       
-      return { success: false, message: response.message };
+      const errorMessage = response.message || 'Erro ao criar conta';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     } catch (err) {
-      setError(err.message);
-      return { success: false, message: err.message };
+      const errorMessage = err.message || 'Erro de conexão. Verifique sua internet.';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
@@ -70,10 +73,13 @@ export const AuthProvider = ({ children }) => {
         return { success: true, user: response.data.user };
       }
       
-      return { success: false, message: response.message };
+      const errorMessage = response.message || 'Email ou senha incorretos';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     } catch (err) {
-      setError(err.message);
-      return { success: false, message: err.message };
+      const errorMessage = err.message || 'Erro de conexão. Verifique sua internet.';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
