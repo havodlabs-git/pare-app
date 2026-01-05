@@ -370,12 +370,22 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <AuthScreen />;
+    return (
+      <>
+        <Toaster position="top-right" richColors closeButton />
+        <AuthScreen />
+      </>
+    );
   }
 
   // Show onboarding if user has no profile (first time or after reset)
   if (!userProfile || userProfile.modules.length === 0) {
-    return <Onboarding onComplete={handleFirstModuleSelection} />;
+    return (
+      <>
+        <Toaster position="top-right" richColors closeButton />
+        <Onboarding onComplete={handleFirstModuleSelection} />
+      </>
+    );
   }
 
   const currentModule = userProfile.modules.find(m => m.moduleId === userProfile.currentModuleId);
@@ -385,8 +395,9 @@ export default function App() {
   const maxModules = userProfile.plan === "free" ? 1 : userProfile.plan === "premium" ? 3 : 999;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Toaster position="top-center" richColors />
+    <>
+      <Toaster position="top-right" richColors closeButton />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
@@ -574,5 +585,6 @@ export default function App() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }
