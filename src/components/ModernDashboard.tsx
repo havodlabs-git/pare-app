@@ -1,4 +1,4 @@
-import { Trophy, Target, Flame, TrendingUp, Calendar, Award, Zap, Eye } from "lucide-react";
+import { Trophy, Target, Flame, TrendingUp, Calendar, Award, Zap, Eye, Check } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
@@ -239,11 +239,11 @@ export function ModernDashboard({
         </Button>
         <Button 
           onClick={onReset} 
-          variant="outline" 
-          className="h-16 font-semibold"
+          className="h-16 font-semibold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0"
           size="lg"
         >
-          Resetar Progresso
+          <Check className="w-5 h-5 mr-2" />
+          Hoje Estou Limpo
         </Button>
       </div>
     </div>
