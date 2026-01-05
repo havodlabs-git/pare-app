@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Logo } from "./Logo";
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Target, Trophy, Users } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 
@@ -24,7 +24,6 @@ export function AuthScreen() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validações
     if (!formData.email || !formData.password) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
@@ -71,83 +70,83 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-12 items-center">
         {/* Left Side - Branding */}
-        <div className="hidden md:block text-white space-y-8">
+        <div className="hidden md:block space-y-10">
           <div className="flex items-center gap-4">
             <Logo size="xl" />
             <div>
-              <h1 className="text-6xl font-bold mb-2">Pare!</h1>
-              <p className="text-xl text-gray-300">Transforme seus hábitos</p>
+              <h1 className="text-5xl font-bold text-foreground tracking-tight">Pare!</h1>
+              <p className="text-lg text-muted-foreground mt-1">Transforme seus hábitos</p>
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
-                <span className="text-2xl">🎯</span>
+              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center flex-shrink-0">
+                <Target className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-2">Defina seus objetivos</h3>
-                <p className="text-gray-300">Escolha o hábito que deseja mudar e acompanhe seu progresso diário</p>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Acompanhe seu progresso</h3>
+                <p className="text-muted-foreground">Visualize sua evolução diária e mantenha o foco nos seus objetivos</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
-                <span className="text-2xl">🏆</span>
+              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center flex-shrink-0">
+                <Trophy className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-2">Conquiste suas metas</h3>
-                <p className="text-gray-300">Ganhe pontos, suba de nível e desbloqueie conquistas</p>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Conquiste metas</h3>
+                <p className="text-muted-foreground">Sistema de recompensas e níveis para manter sua motivação</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
-                <span className="text-2xl">👥</span>
+              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center flex-shrink-0">
+                <Users className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-2">Comunidade de apoio</h3>
-                <p className="text-gray-300">Compartilhe sua jornada e inspire outras pessoas</p>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Comunidade de apoio</h3>
+                <p className="text-muted-foreground">Conecte-se com outros usuários e compartilhe sua jornada</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Side - Auth Form */}
-        <Card className="p-8 bg-white/95 backdrop-blur-sm">
-          <div className="md:hidden mb-6 text-center">
+        <Card className="p-8 bg-card border border-border shadow-sm">
+          <div className="md:hidden mb-8 text-center">
             <div className="flex justify-center mb-4">
               <Logo size="lg" />
             </div>
-            <h1 className="text-3xl font-bold mb-1">Pare!</h1>
-            <p className="text-gray-600">Transforme seus hábitos</p>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">Pare!</h1>
+            <p className="text-muted-foreground mt-1">Transforme seus hábitos</p>
           </div>
 
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-2">
-              {isLogin ? "Bem-vindo de volta!" : "Crie sua conta"}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">
+              {isLogin ? "Bem-vindo de volta" : "Crie sua conta"}
             </h2>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground mt-1">
               {isLogin
                 ? "Entre para continuar sua jornada"
                 : "Comece sua transformação hoje"}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
                 <Label htmlFor="name">Nome completo</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="name"
                     type="text"
                     placeholder="Digite seu nome"
-                    className="pl-10"
+                    className="pl-10 h-12 bg-secondary border-border"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
@@ -160,12 +159,12 @@ export function AuthScreen() {
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="seu@email.com"
-                  className="pl-10"
+                  className="pl-10 h-12 bg-secondary border-border"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
@@ -177,12 +176,12 @@ export function AuthScreen() {
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="pl-10 pr-10"
+                  className="pl-10 pr-10 h-12 bg-secondary border-border"
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
@@ -191,7 +190,7 @@ export function AuthScreen() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -206,12 +205,12 @@ export function AuthScreen() {
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="pl-10"
+                    className="pl-10 h-12 bg-secondary border-border"
                     value={formData.confirmPassword}
                     onChange={(e) =>
                       setFormData({
@@ -226,7 +225,7 @@ export function AuthScreen() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               size="lg"
               disabled={isSubmitting || loading}
             >
@@ -244,7 +243,7 @@ export function AuthScreen() {
           <div className="mt-6 text-center">
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-purple-600 hover:text-purple-700 font-medium"
+              className="text-primary hover:text-primary/80 font-medium transition-colors"
               disabled={isSubmitting}
             >
               {isLogin

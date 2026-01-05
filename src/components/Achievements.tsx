@@ -1,6 +1,7 @@
 import { Trophy, Lock, CheckCircle2, Award, Star, Zap, Target, Crown, Rocket, Shield } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { Progress } from "./ui/progress";
 
 interface Achievement {
   id: string;
@@ -30,8 +31,8 @@ export function Achievements({ dayCount, longestStreak }: AchievementsProps) {
     },
     {
       id: "week_warrior",
-      title: "Guerreiro de Uma Semana",
-      description: "Mantenha-se limpo por 7 dias",
+      title: "Uma Semana Forte",
+      description: "Complete 7 dias consecutivos",
       icon: <Shield className="w-6 h-6" />,
       requirement: 7,
       points: 50,
@@ -39,7 +40,7 @@ export function Achievements({ dayCount, longestStreak }: AchievementsProps) {
     },
     {
       id: "two_weeks",
-      title: "Fortaleza de Duas Semanas",
+      title: "Duas Semanas",
       description: "14 dias de determinação",
       icon: <Target className="w-6 h-6" />,
       requirement: 14,
@@ -48,8 +49,8 @@ export function Achievements({ dayCount, longestStreak }: AchievementsProps) {
     },
     {
       id: "month_master",
-      title: "Mestre do Mês",
-      description: "Um mês completo de sucesso",
+      title: "Mês de Vitória",
+      description: "Complete 30 dias consecutivos",
       icon: <Award className="w-6 h-6" />,
       requirement: 30,
       points: 200,
@@ -66,8 +67,8 @@ export function Achievements({ dayCount, longestStreak }: AchievementsProps) {
     },
     {
       id: "ninety_days",
-      title: "Transformação 90 Dias",
-      description: "90 dias de mudança real",
+      title: "Guerreiro",
+      description: "Complete 90 dias consecutivos",
       icon: <Rocket className="w-6 h-6" />,
       requirement: 90,
       points: 500,
@@ -75,8 +76,8 @@ export function Achievements({ dayCount, longestStreak }: AchievementsProps) {
     },
     {
       id: "half_year",
-      title: "Guardião do Semestre",
-      description: "6 meses de autodisciplina",
+      title: "Mestre",
+      description: "Complete 180 dias consecutivos",
       icon: <Crown className="w-6 h-6" />,
       requirement: 180,
       points: 1000,
@@ -84,34 +85,40 @@ export function Achievements({ dayCount, longestStreak }: AchievementsProps) {
     },
     {
       id: "year_legend",
-      title: "Lenda do Ano",
-      description: "1 ano completo - você é inspiração!",
+      title: "Lenda",
+      description: "Complete 365 dias consecutivos",
       icon: <Trophy className="w-6 h-6" />,
       requirement: 365,
-      points: 5000,
+      points: 2000,
       unlocked: dayCount >= 365,
     },
   ];
 
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
   const totalPoints = achievements.filter((a) => a.unlocked).reduce((sum, a) => sum + a.points, 0);
+  const progressPercent = Math.round((unlockedCount / achievements.length) * 100);
 
   return (
     <div className="space-y-6">
       {/* Header Stats */}
-      <Card className="p-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold mb-1">Conquistas</h2>
-            <p className="opacity-90">
-              {unlockedCount} de {achievements.length} desbloqueadas
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold">{totalPoints}</div>
-            <p className="text-sm opacity-90">Pontos de Conquistas</p>
-          </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="p-6 bg-card border border-border">
+          <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide mb-2">Desbloqueadas</p>
+          <p className="text-3xl font-bold text-foreground">{unlockedCount}/{achievements.length}</p>
+        </Card>
+        <Card className="p-6 bg-card border border-border">
+          <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide mb-2">Pontos Ganhos</p>
+          <p className="text-3xl font-bold text-foreground">{totalPoints}</p>
+        </Card>
+      </div>
+
+      {/* Progress Bar */}
+      <Card className="p-6 bg-card border border-border">
+        <div className="flex justify-between items-center mb-3">
+          <p className="text-sm text-muted-foreground">Progresso Geral</p>
+          <p className="text-sm font-semibold text-foreground">{progressPercent}%</p>
         </div>
+        <Progress value={progressPercent} className="h-2 bg-secondary" />
       </Card>
 
       {/* Achievements Grid */}
@@ -119,18 +126,18 @@ export function Achievements({ dayCount, longestStreak }: AchievementsProps) {
         {achievements.map((achievement) => (
           <Card
             key={achievement.id}
-            className={`p-5 transition-all ${
+            className={`p-5 transition-all bg-card border ${
               achievement.unlocked
-                ? "border-green-200 bg-green-50"
-                : "border-gray-200 opacity-60"
+                ? "border-primary"
+                : "border-border opacity-50"
             }`}
           >
             <div className="flex gap-4">
               <div
-                className={`flex-shrink-0 w-14 h-14 rounded-lg flex items-center justify-center ${
+                className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center ${
                   achievement.unlocked
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-400"
+                    ? "bg-accent text-primary"
+                    : "bg-secondary text-muted-foreground"
                 }`}
               >
                 {achievement.unlocked ? (
@@ -141,19 +148,18 @@ export function Achievements({ dayCount, longestStreak }: AchievementsProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="font-semibold">{achievement.title}</h3>
+                  <h3 className={`font-semibold ${achievement.unlocked ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    {achievement.title}
+                  </h3>
                   {achievement.unlocked && (
-                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-[#10B981] flex-shrink-0" />
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mb-2">
+                <p className="text-sm text-muted-foreground mb-3">
                   {achievement.description}
                 </p>
                 <div className="flex items-center justify-between">
-                  <Badge variant={achievement.unlocked ? "default" : "secondary"}>
-                    {achievement.requirement} dias
-                  </Badge>
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-semibold text-primary">
                     +{achievement.points} pts
                   </span>
                 </div>

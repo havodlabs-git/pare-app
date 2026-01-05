@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
-import { MessageCircle, ThumbsUp, Send, Users, TrendingUp, Calendar } from "lucide-react";
+import { MessageCircle, ThumbsUp, Send, Users, TrendingUp, Plus, Heart } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 
 interface ForumPost {
@@ -25,7 +25,6 @@ export function Forum() {
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
 
-  // Mock forum posts - will be replaced with Supabase data
   const mockPosts: ForumPost[] = [
     {
       id: "1",
@@ -79,7 +78,6 @@ export function Forum() {
 
   const handleSubmitPost = () => {
     if (newTitle.trim() && newContent.trim()) {
-      // Will be implemented with Supabase
       console.log("New post:", { title: newTitle, content: newContent });
       setNewTitle("");
       setNewContent("");
@@ -87,81 +85,83 @@ export function Forum() {
     }
   };
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryStyle = (category: string) => {
     switch (category) {
       case "Vitória":
-        return "bg-green-100 text-green-700";
+        return "bg-[#ECFDF5] text-[#10B981]";
       case "Dica":
-        return "bg-blue-100 text-blue-700";
+        return "bg-accent text-primary";
       case "Motivação":
-        return "bg-purple-100 text-purple-700";
+        return "bg-[#F3E8FF] text-[#8B5CF6]";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-secondary text-muted-foreground";
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Forum Header */}
-      <Card className="p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Fórum da Comunidade</h2>
-            <p className="opacity-90">Compartilhe sua jornada e apoie outros membros</p>
-          </div>
-          <Users className="w-12 h-12 opacity-80" />
-        </div>
-      </Card>
-
       {/* Stats Bar */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 text-center">
-          <Users className="w-6 h-6 mx-auto mb-2 text-blue-600" />
-          <p className="text-2xl font-bold">1,234</p>
-          <p className="text-sm text-gray-500">Membros Ativos</p>
+        <Card className="p-4 text-center bg-card border border-border">
+          <Users className="w-5 h-5 mx-auto mb-2 text-primary" />
+          <p className="text-xl font-bold text-foreground">1,234</p>
+          <p className="text-xs text-muted-foreground">Membros</p>
         </Card>
-        <Card className="p-4 text-center">
-          <MessageCircle className="w-6 h-6 mx-auto mb-2 text-green-600" />
-          <p className="text-2xl font-bold">567</p>
-          <p className="text-sm text-gray-500">Posts Hoje</p>
+        <Card className="p-4 text-center bg-card border border-border">
+          <MessageCircle className="w-5 h-5 mx-auto mb-2 text-[#10B981]" />
+          <p className="text-xl font-bold text-foreground">567</p>
+          <p className="text-xs text-muted-foreground">Posts</p>
         </Card>
-        <Card className="p-4 text-center">
-          <TrendingUp className="w-6 h-6 mx-auto mb-2 text-purple-600" />
-          <p className="text-2xl font-bold">89%</p>
-          <p className="text-sm text-gray-500">Taxa de Sucesso</p>
+        <Card className="p-4 text-center bg-card border border-border">
+          <TrendingUp className="w-5 h-5 mx-auto mb-2 text-[#F59E0B]" />
+          <p className="text-xl font-bold text-foreground">89%</p>
+          <p className="text-xs text-muted-foreground">Sucesso</p>
         </Card>
       </div>
 
       {/* New Post Button */}
       {!showNewPost && (
-        <Button onClick={() => setShowNewPost(true)} className="w-full" size="lg">
-          <Send className="w-5 h-5 mr-2" />
-          Criar Nova Postagem
+        <Button 
+          onClick={() => setShowNewPost(true)} 
+          className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
+          size="lg"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          Nova Publicação
         </Button>
       )}
 
       {/* New Post Form */}
       {showNewPost && (
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Nova Postagem</h3>
+        <Card className="p-6 bg-card border border-border">
+          <h3 className="font-semibold text-foreground mb-4">Nova Publicação</h3>
           <div className="space-y-4">
             <Input
-              placeholder="Título da postagem..."
+              placeholder="Título da publicação..."
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
+              className="h-12 bg-secondary border-border"
             />
             <Textarea
               placeholder="Compartilhe sua história, dicas ou peça ajuda..."
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
-              rows={5}
+              rows={4}
+              className="bg-secondary border-border resize-none"
             />
-            <div className="flex gap-2">
-              <Button onClick={handleSubmitPost}>
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleSubmitPost}
+                className="flex-1 h-12 bg-primary hover:bg-primary/90"
+              >
                 <Send className="w-4 h-4 mr-2" />
                 Publicar
               </Button>
-              <Button variant="outline" onClick={() => setShowNewPost(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowNewPost(false)}
+                className="h-12 border-border"
+              >
                 Cancelar
               </Button>
             </div>
@@ -172,62 +172,44 @@ export function Forum() {
       {/* Forum Posts */}
       <div className="space-y-4">
         {mockPosts.map((post) => (
-          <Card key={post.id} className="p-6 hover:shadow-md transition-shadow">
+          <Card key={post.id} className="p-5 bg-card border border-border">
             <div className="flex gap-4">
-              <Avatar className="w-12 h-12 flex-shrink-0">
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+              <Avatar className="w-10 h-10 flex-shrink-0">
+                <AvatarFallback className="bg-accent text-primary font-semibold text-sm">
                   {post.author.split(" ").map(n => n[0]).join("")}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <h3 className="font-semibold">{post.title}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-medium">{post.author}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        Nível {post.authorLevel}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {post.dayCount} dias
-                      </Badge>
-                      <Badge className={`text-xs ${getCategoryColor(post.category)}`}>
-                        {post.category}
-                      </Badge>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold text-foreground">{post.author}</span>
+                  <span className="text-sm text-muted-foreground">Nível {post.authorLevel}</span>
+                  <Badge className={`text-xs ${getCategoryStyle(post.category)}`}>
+                    {post.category}
+                  </Badge>
                 </div>
 
-                <p className="text-gray-700 mb-3">{post.content}</p>
+                <h3 className="font-medium text-foreground mb-2">{post.title}</h3>
+                <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{post.content}</p>
 
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span>{post.likes}</span>
+                <div className="flex items-center gap-4">
+                  <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors">
+                    <Heart className="w-4 h-4" />
+                    <span className="text-sm">{post.likes}</span>
                   </button>
-                  <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+                  <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors">
                     <MessageCircle className="w-4 h-4" />
-                    <span>{post.replies} respostas</span>
+                    <span className="text-sm">{post.replies}</span>
                   </button>
-                  <div className="flex items-center gap-1 ml-auto">
-                    <Calendar className="w-4 h-4" />
-                    <span>{new Date(post.timestamp).toLocaleDateString('pt-BR')}</span>
-                  </div>
+                  <span className="text-sm text-muted-foreground ml-auto">
+                    {new Date(post.timestamp).toLocaleDateString('pt-BR')}
+                  </span>
                 </div>
               </div>
             </div>
           </Card>
         ))}
       </div>
-
-      {/* Info Card */}
-      <Card className="p-5 bg-blue-50 border-blue-200">
-        <p className="text-sm text-blue-800">
-          <strong>Nota:</strong> Este fórum atualmente usa dados de exemplo. Conecte ao Supabase
-          para ter um fórum comunitário real com persistência de dados!
-        </p>
-      </Card>
     </div>
   );
 }
