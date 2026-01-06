@@ -38,6 +38,30 @@ interface ForumStats {
   successRate: number;
 }
 
+// Helper function to map API response to component format
+const mapApiPost = (apiPost: any): ForumPost => {
+  return {
+    id: apiPost.id,
+    author: apiPost.authorName || apiPost.author || "Anônimo",
+    authorId: apiPost.authorId || "",
+    authorLevel: apiPost.authorLevel || 1,
+    dayCount: apiPost.authorDays || 0,
+    title: apiPost.title || "",
+    content: apiPost.content || "",
+    timestamp: apiPost.createdAt || new Date().toISOString(),
+    likes: apiPost.likesCount || apiPost.likes?.length || 0,
+    likedBy: apiPost.likes || [],
+    replies: (apiPost.replies || []).map((r: any) => ({
+      id: r.id,
+      author: r.authorName || r.author || "Anônimo",
+      authorId: r.authorId || "",
+      content: r.content || "",
+      timestamp: r.createdAt || r.timestamp || new Date().toISOString(),
+    })),
+    category: apiPost.category === "general" ? "Geral" : apiPost.category || "Geral",
+  };
+};
+
 export function Forum() {
   const toast = useToast();
   const [posts, setPosts] = useState<ForumPost[]>([]);
@@ -46,7 +70,7 @@ export function Forum() {
   const [showNewPost, setShowNewPost] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
-  const [newCategory, setNewCategory] = useState("Geral");
+  const [newCategory, setNewCategory] = useState("general");
   const [submitting, setSubmitting] = useState(false);
   
   // Post detail view
@@ -65,10 +89,12 @@ export function Forum() {
       setLoading(true);
       const response = await api.getPosts();
       if (response.success && response.data) {
-        setPosts(response.data);
+        const mappedPosts = response.data.map(mapApiPost);
+        setPosts(mappedPosts);
       }
     } catch (error) {
       console.error("Error loading posts:", error);
+      toast.error("Erro ao carregar posts");
     } finally {
       setLoading(false);
     }
@@ -78,7 +104,11 @@ export function Forum() {
     try {
       const response = await api.getForumStats();
       if (response.success && response.data) {
-        setStats(response.data);
+        setStats({
+          totalMembers: response.data.totalMembers || 0,
+          totalPosts: response.data.totalPosts || 0,
+          successRate: response.data.successRate || 0,
+        });
       }
     } catch (error) {
       console.error("Error loading stats:", error);
@@ -103,7 +133,7 @@ export function Forum() {
         toast.success("Post criado com sucesso!");
         setNewTitle("");
         setNewContent("");
-        setNewCategory("Geral");
+        setNewCategory("general");
         setShowNewPost(false);
         loadPosts(); // Reload posts
       } else {
@@ -116,7 +146,10 @@ export function Forum() {
     }
   };
 
-  const handleLike = async (postId: string) => {
+  const handleLike = async (postId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     try {
       const response = await api.toggleLike(postId);
       if (response.success) {
@@ -125,7 +158,7 @@ export function Forum() {
           // Update selected post too
           const updatedPost = await api.getPost(postId);
           if (updatedPost.success && updatedPost.data) {
-            setSelectedPost(updatedPost.data);
+            setSelectedPost(mapApiPost(updatedPost.data));
           }
         }
       }
@@ -149,7 +182,7 @@ export function Forum() {
         // Reload the post to get updated replies
         const updatedPost = await api.getPost(selectedPost.id);
         if (updatedPost.success && updatedPost.data) {
-          setSelectedPost(updatedPost.data);
+          setSelectedPost(mapApiPost(updatedPost.data));
         }
         loadPosts();
       } else {
@@ -166,22 +199,36 @@ export function Forum() {
     try {
       const response = await api.getPost(post.id);
       if (response.success && response.data) {
-        setSelectedPost(response.data);
+        setSelectedPost(mapApiPost(response.data));
       } else {
         setSelectedPost(post);
       }
     } catch (error) {
+      console.error("Error loading post detail:", error);
       setSelectedPost(post);
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case "general": return "Geral";
+      case "victory": return "Vitória";
+      case "tip": return "Dica";
+      case "motivation": return "Motivação";
+      default: return category;
     }
   };
 
   const getCategoryStyle = (category: string) => {
     switch (category) {
       case "Vitória":
+      case "victory":
         return "bg-[#ECFDF5] text-[#10B981]";
       case "Dica":
+      case "tip":
         return "bg-accent text-primary";
       case "Motivação":
+      case "motivation":
         return "bg-[#F3E8FF] text-[#8B5CF6]";
       default:
         return "bg-secondary text-muted-foreground";
@@ -207,16 +254,16 @@ export function Forum() {
           <div className="flex gap-4">
             <Avatar className="w-12 h-12 flex-shrink-0">
               <AvatarFallback className="bg-accent text-primary font-semibold">
-                {selectedPost.author.split(" ").map(n => n[0]).join("")}
+                {selectedPost.author.split(" ").map(n => n[0]).join("").substring(0, 2)}
               </AvatarFallback>
             </Avatar>
 
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="font-semibold text-foreground">{selectedPost.author}</span>
                 <span className="text-sm text-muted-foreground">Nível {selectedPost.authorLevel}</span>
                 <Badge className={`text-xs ${getCategoryStyle(selectedPost.category)}`}>
-                  {selectedPost.category}
+                  {getCategoryLabel(selectedPost.category)}
                 </Badge>
               </div>
 
@@ -251,7 +298,7 @@ export function Forum() {
                 <div className="flex gap-3">
                   <Avatar className="w-8 h-8 flex-shrink-0">
                     <AvatarFallback className="bg-secondary text-muted-foreground font-semibold text-xs">
-                      {reply.author.split(" ").map(n => n[0]).join("")}
+                      {reply.author.split(" ").map(n => n[0]).join("").substring(0, 2)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
@@ -351,18 +398,23 @@ export function Forum() {
               rows={4}
               className="bg-secondary border-border resize-none"
             />
-            <div className="flex gap-2">
-              {["Geral", "Vitória", "Dica", "Motivação"].map((cat) => (
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { value: "general", label: "Geral" },
+                { value: "victory", label: "Vitória" },
+                { value: "tip", label: "Dica" },
+                { value: "motivation", label: "Motivação" }
+              ].map((cat) => (
                 <button
-                  key={cat}
-                  onClick={() => setNewCategory(cat)}
+                  key={cat.value}
+                  onClick={() => setNewCategory(cat.value)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    newCategory === cat 
+                    newCategory === cat.value 
                       ? "bg-primary text-primary-foreground" 
                       : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                   }`}
                 >
-                  {cat}
+                  {cat.label}
                 </button>
               ))}
             </div>
@@ -409,16 +461,16 @@ export function Forum() {
               <div className="flex gap-4">
                 <Avatar className="w-10 h-10 flex-shrink-0">
                   <AvatarFallback className="bg-accent text-primary font-semibold text-sm">
-                    {post.author.split(" ").map(n => n[0]).join("")}
+                    {post.author.split(" ").map(n => n[0]).join("").substring(0, 2)}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="font-semibold text-foreground">{post.author}</span>
                     <span className="text-sm text-muted-foreground">Nível {post.authorLevel}</span>
                     <Badge className={`text-xs ${getCategoryStyle(post.category)}`}>
-                      {post.category}
+                      {getCategoryLabel(post.category)}
                     </Badge>
                   </div>
 
@@ -427,10 +479,7 @@ export function Forum() {
 
                   <div className="flex items-center gap-4">
                     <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLike(post.id);
-                      }}
+                      onClick={(e) => handleLike(post.id, e)}
                       className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Heart className="w-4 h-4" />
