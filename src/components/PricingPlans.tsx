@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Check, Zap, Crown, Sparkles, Lock } from "lucide-react";
+import { Check, Zap, Crown, Sparkles, Lock, Video } from "lucide-react";
 
 interface PricingPlansProps {
   currentPlan?: "free" | "premium" | "elite";
@@ -9,12 +10,15 @@ interface PricingPlansProps {
 }
 
 export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlansProps) {
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+
   const plans = [
     {
       id: "free" as const,
       name: "Gratuito",
-      price: "R$ 0",
-      period: "/mês",
+      priceMonthly: 0,
+      priceYearly: 0,
+      period: billingCycle === "monthly" ? "/mês" : "/ano",
       description: "Perfeito para começar sua jornada",
       icon: <Sparkles className="w-8 h-8" />,
       color: "from-gray-500 to-gray-600",
@@ -24,18 +28,19 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
         { text: "5 achievements", included: true },
         { text: "Estatísticas básicas", included: true },
         { text: "Acesso ao fórum", included: true },
+        { text: "7 dias de trial", included: true },
         { text: "Módulos ilimitados", included: false },
         { text: "Análise avançada", included: false },
-        { text: "Exportar relatórios", included: false },
-        { text: "Suporte prioritário", included: false },
+        { text: "Sessões com psicólogos", included: false },
       ],
       popular: false,
     },
     {
       id: "premium" as const,
       name: "Premium",
-      price: "R$ 19,90",
-      period: "/mês",
+      priceMonthly: 19.90,
+      priceYearly: 199.00,
+      period: billingCycle === "monthly" ? "/mês" : "/ano",
       description: "Para quem quer resultados sérios",
       icon: <Zap className="w-8 h-8" />,
       color: "from-purple-500 to-pink-600",
@@ -48,15 +53,16 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
         { text: "Metas personalizadas", included: true },
         { text: "Notificações motivacionais", included: true },
         { text: "Exportar relatórios PDF", included: true },
-        { text: "Suporte prioritário", included: false },
+        { text: "Sessões com psicólogos", included: false },
       ],
       popular: true,
     },
     {
       id: "elite" as const,
       name: "Elite",
-      price: "R$ 39,90",
-      period: "/mês",
+      priceMonthly: 39.90,
+      priceYearly: 399.00,
+      period: billingCycle === "monthly" ? "/mês" : "/ano",
       description: "Transformação completa",
       icon: <Crown className="w-8 h-8" />,
       color: "from-amber-500 to-orange-600",
@@ -65,15 +71,26 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
         { text: "Todos os recursos Premium", included: true },
         { text: "50+ achievements exclusivos", included: true },
         { text: "IA de análise comportamental", included: true },
-        { text: "Coaching semanal por e-mail", included: true },
         { text: "Relatórios personalizados", included: true },
         { text: "Badge exclusivo Elite", included: true },
         { text: "Acesso a grupo VIP", included: true },
         { text: "Suporte prioritário 24/7", included: true },
+        { text: "Sessões com psicólogos via Zoom", included: true, highlight: true },
       ],
       popular: false,
     },
   ];
+
+  const formatPrice = (price: number) => {
+    if (price === 0) return "R$ 0";
+    return `R$ ${price.toFixed(2).replace(".", ",")}`;
+  };
+
+  const getYearlyDiscount = (monthly: number, yearly: number) => {
+    if (monthly === 0) return 0;
+    const monthlyTotal = monthly * 12;
+    return Math.round(((monthlyTotal - yearly) / monthlyTotal) * 100);
+  };
 
   return (
     <div className="space-y-8">
@@ -88,91 +105,148 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           Invista em você mesmo. Todos os planos incluem 7 dias de garantia.
         </p>
+
+        {/* Billing Toggle */}
+        <div className="flex items-center justify-center gap-4 pt-4">
+          <span className={`text-sm font-medium ${billingCycle === "monthly" ? "text-gray-900" : "text-gray-500"}`}>
+            Mensal
+          </span>
+          <button
+            onClick={() => setBillingCycle(billingCycle === "monthly" ? "yearly" : "monthly")}
+            className={`relative w-14 h-7 rounded-full transition-colors ${
+              billingCycle === "yearly" ? "bg-indigo-500" : "bg-gray-300"
+            }`}
+          >
+            <div
+              className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform shadow ${
+                billingCycle === "yearly" ? "translate-x-8" : "translate-x-1"
+              }`}
+            />
+          </button>
+          <span className={`text-sm font-medium ${billingCycle === "yearly" ? "text-gray-900" : "text-gray-500"}`}>
+            Anual
+          </span>
+          {billingCycle === "yearly" && (
+            <Badge className="bg-green-100 text-green-700 border-green-200">
+              Economize até 17%
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Plans Grid */}
       <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {plans.map((plan) => (
-          <Card
-            key={plan.id}
-            className={`relative p-6 transition-all duration-300 ${
-              plan.popular
-                ? "border-2 border-purple-500 shadow-2xl scale-105"
-                : "border hover:border-gray-300 hover:shadow-lg"
-            } ${currentPlan === plan.id ? "ring-2 ring-green-500" : ""}`}
-          >
-            {/* Popular Badge */}
-            {plan.popular && (
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 shadow-lg">
-                  ⭐ Mais Popular
-                </Badge>
-              </div>
-            )}
+        {plans.map((plan) => {
+          const price = billingCycle === "monthly" ? plan.priceMonthly : plan.priceYearly;
+          const discount = getYearlyDiscount(plan.priceMonthly, plan.priceYearly);
 
-            {/* Current Plan Badge */}
-            {currentPlan === plan.id && (
-              <div className="absolute -top-4 right-4">
-                <Badge className="bg-green-500 text-white px-3 py-1 shadow-lg">
-                  Plano Atual
-                </Badge>
-              </div>
-            )}
-
-            {/* Icon */}
-            <div className={`w-16 h-16 bg-gradient-to-br ${plan.color} rounded-2xl flex items-center justify-center text-white mb-4`}>
-              {plan.icon}
-            </div>
-
-            {/* Plan Name & Description */}
-            <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-            <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
-
-            {/* Price */}
-            <div className="mb-6">
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="text-gray-500">{plan.period}</span>
-              </div>
-            </div>
-
-            {/* Features */}
-            <ul className="space-y-3 mb-6">
-              {plan.features.map((feature, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  {feature.included ? (
-                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <Lock className="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" />
-                  )}
-                  <span className={feature.included ? "text-gray-700" : "text-gray-400"}>
-                    {feature.text}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            {/* CTA Button */}
-            <Button
-              onClick={() => onSelectPlan?.(plan.id)}
-              disabled={currentPlan === plan.id}
-              className={`w-full h-12 ${
+          return (
+            <Card
+              key={plan.id}
+              className={`relative p-6 transition-all duration-300 ${
                 plan.popular
-                  ? "bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
-                  : currentPlan === plan.id
-                  ? "bg-green-500 text-white"
-                  : "bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50"
-              }`}
+                  ? "border-2 border-purple-500 shadow-2xl scale-105"
+                  : "border hover:border-gray-300 hover:shadow-lg"
+              } ${currentPlan === plan.id ? "ring-2 ring-green-500" : ""}`}
             >
-              {currentPlan === plan.id
-                ? "✓ Plano Ativo"
-                : plan.id === "free"
-                ? "Começar Grátis"
-                : "Assinar Agora"}
-            </Button>
-          </Card>
-        ))}
+              {/* Popular Badge */}
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 shadow-lg">
+                    ⭐ Mais Popular
+                  </Badge>
+                </div>
+              )}
+
+              {/* Current Plan Badge */}
+              {currentPlan === plan.id && (
+                <div className="absolute -top-4 right-4">
+                  <Badge className="bg-green-500 text-white px-3 py-1 shadow-lg">
+                    Plano Atual
+                  </Badge>
+                </div>
+              )}
+
+              {/* Icon */}
+              <div className={`w-16 h-16 bg-gradient-to-br ${plan.color} rounded-2xl flex items-center justify-center text-white mb-4`}>
+                {plan.icon}
+              </div>
+
+              {/* Plan Name & Description */}
+              <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+              <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
+
+              {/* Price */}
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold">{formatPrice(price)}</span>
+                  <span className="text-gray-500">{plan.period}</span>
+                </div>
+                {billingCycle === "yearly" && discount > 0 && (
+                  <p className="text-green-600 text-sm mt-1">
+                    Economia de {discount}% no plano anual
+                  </p>
+                )}
+              </div>
+
+              {/* Features */}
+              <ul className="space-y-3 mb-6">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className={`flex items-start gap-3 ${feature.highlight ? "bg-amber-50 -mx-2 px-2 py-1 rounded-lg" : ""}`}>
+                    {feature.included ? (
+                      feature.highlight ? (
+                        <Video className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      )
+                    ) : (
+                      <Lock className="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" />
+                    )}
+                    <span className={`${feature.included ? (feature.highlight ? "text-amber-700 font-medium" : "text-gray-700") : "text-gray-400"}`}>
+                      {feature.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTA Button */}
+              <Button
+                onClick={() => onSelectPlan?.(plan.id)}
+                disabled={currentPlan === plan.id}
+                className={`w-full h-12 ${
+                  plan.popular
+                    ? "bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
+                    : currentPlan === plan.id
+                    ? "bg-green-500 text-white"
+                    : "bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {currentPlan === plan.id
+                  ? "✓ Plano Ativo"
+                  : plan.id === "free"
+                  ? "Começar Grátis"
+                  : "Assinar Agora"}
+              </Button>
+            </Card>
+          );
+        })}
       </div>
+
+      {/* Elite Highlight */}
+      <Card className="max-w-4xl mx-auto p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center text-white flex-shrink-0">
+            <Video className="w-8 h-8" />
+          </div>
+          <div>
+            <h4 className="text-lg font-bold text-amber-900">Sessões com Psicólogos - Exclusivo Elite</h4>
+            <p className="text-amber-700 mt-1">
+              Agende sessões de acompanhamento via Zoom com psicólogos especializados em dependências comportamentais. 
+              Receba orientação profissional personalizada para sua jornada de recuperação.
+            </p>
+          </div>
+        </div>
+      </Card>
 
       {/* FAQ / Additional Info */}
       <div className="max-w-3xl mx-auto mt-12 space-y-6">
@@ -188,7 +262,7 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
         <Card className="p-6">
           <h4 className="font-semibold mb-2">💳 Quais formas de pagamento?</h4>
           <p className="text-gray-600">
-            Aceitamos cartão de crédito, PIX e boleto bancário. Pagamentos processados com total segurança.
+            Aceitamos Google Pay, cartão de crédito e PIX. Pagamentos processados com total segurança.
           </p>
         </Card>
 
@@ -196,6 +270,14 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
           <h4 className="font-semibold mb-2">🎁 Tem garantia?</h4>
           <p className="text-gray-600">
             Sim! Oferecemos 7 dias de garantia incondicional. Se não gostar, devolvemos 100% do seu dinheiro.
+          </p>
+        </Card>
+
+        <Card className="p-6">
+          <h4 className="font-semibold mb-2">📹 Como funcionam as sessões com psicólogos?</h4>
+          <p className="text-gray-600">
+            No plano Elite, você pode agendar sessões de 50 minutos com psicólogos especializados via Zoom. 
+            Escolha o profissional, horário e receba o link da videochamada automaticamente.
           </p>
         </Card>
 
