@@ -31,6 +31,13 @@ interface Appointment {
   notes: string;
 }
 
+interface CalendarDay {
+  date: Date;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  isPast: boolean;
+}
+
 interface AppointmentsProps {
   userPlan: string;
   onUpgrade?: () => void;
@@ -40,6 +47,7 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [myAppointments, setMyAppointments] = useState<Appointment[]>([]);
@@ -139,17 +147,80 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  // Calendar helpers
+  const getDaysInMonth = (date: Date): CalendarDay[] => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const days: CalendarDay[] = [];
+    
+    // Add days from previous month
+    const firstDayOfWeek = firstDay.getDay();
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const d = new Date(year, month, -i);
+      days.push({
+        date: d,
+        isCurrentMonth: false,
+        isToday: false,
+        isPast: d < today
+      });
+    }
+    
+    // Add days of current month
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const d = new Date(year, month, i);
+      days.push({
+        date: d,
+        isCurrentMonth: true,
+        isToday: d.getTime() === today.getTime(),
+        isPast: d < today
+      });
+    }
+    
+    // Add days from next month
+    const remainingDays = 42 - days.length;
+    for (let i = 1; i <= remainingDays; i++) {
+      const d = new Date(year, month + 1, i);
+      days.push({
+        date: d,
+        isCurrentMonth: false,
+        isToday: false,
+        isPast: false
+      });
+    }
+    
+    return days;
   };
 
-  const changeDate = (days: number) => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + days);
-    if (newDate >= new Date()) {
-      setSelectedDate(newDate);
-      setSelectedSlot(null);
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(newMonth.getMonth() + (direction === 'next' ? 1 : -1));
+    
+    // Don't allow navigating to past months
+    const today = new Date();
+    if (direction === 'prev' && newMonth.getFullYear() === today.getFullYear() && newMonth.getMonth() < today.getMonth()) {
+      return;
     }
+    
+    setCurrentMonth(newMonth);
+  };
+
+  const selectDate = (day: CalendarDay) => {
+    if (day.isPast) return;
+    setSelectedDate(day.date);
+    setSelectedSlot(null);
+  };
+
+  const formatMonthYear = (date: Date) => {
+    return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
   // Check if user has Elite plan
@@ -181,6 +252,74 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
       </div>
     );
   }
+
+  // Render Calendar Component
+  const renderCalendar = () => {
+    const days = getDaysInMonth(currentMonth);
+    const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    return (
+      <div className="bg-gray-50 rounded-xl p-4">
+        {/* Calendar Header */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigateMonth('prev')}
+            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <h4 className="text-lg font-semibold text-gray-900 capitalize">
+            {formatMonthYear(currentMonth)}
+          </h4>
+          <button
+            onClick={() => navigateMonth('next')}
+            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Week Days Header */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {weekDays.map((day) => (
+            <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Days */}
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day, index) => {
+            const isSelected = day.date.toDateString() === selectedDate.toDateString();
+            return (
+              <button
+                key={index}
+                onClick={() => selectDate(day)}
+                disabled={day.isPast}
+                className={`
+                  relative p-2 h-10 rounded-lg text-sm font-medium transition-all
+                  ${!day.isCurrentMonth ? 'text-gray-300' : day.isPast ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700'}
+                  ${day.isToday && !isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}
+                  ${isSelected ? 'bg-indigo-500 text-white' : !day.isPast ? 'hover:bg-gray-200' : ''}
+                `}
+              >
+                {day.date.getDate()}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected Date Display */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <p className="text-sm text-gray-600 capitalize">
+            <Calendar className="w-4 h-4 inline mr-2" />
+            {formatDate(selectedDate)}
+          </p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -292,7 +431,6 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
               <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Profissionais em breve</h3>
               <p className="text-gray-600">
-                Estamos finalizando a integração com nossa rede de psicólogos. 
                 Em breve você poderá agendar sessões.
               </p>
             </div>
@@ -323,6 +461,8 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
                 <button
                   onClick={() => {
                     setSelectedProfessional(professional);
+                    setCurrentMonth(new Date());
+                    setSelectedDate(new Date());
                     setView('book');
                   }}
                   className="w-full mt-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium"
@@ -335,7 +475,7 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
         </div>
       )}
 
-      {/* Booking View */}
+      {/* Booking View with Calendar */}
       {view === 'book' && selectedProfessional && (
         <div className="bg-white rounded-2xl p-6">
           <button
@@ -364,77 +504,83 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
             </div>
           </div>
 
-          {/* Date Selector */}
-          <div className="mb-6">
-            <h4 className="font-semibold text-gray-900 mb-3">Selecione a data</h4>
-            <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Calendar */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Selecione a data</h4>
+              {renderCalendar()}
+            </div>
+
+            {/* Time Slots and Notes */}
+            <div className="space-y-6">
+              {/* Time Slots */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Horários disponíveis</h4>
+                {availableSlots.length === 0 ? (
+                  <div className="bg-gray-50 rounded-xl p-6 text-center">
+                    <Clock className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">Nenhum horário disponível nesta data</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {availableSlots.map((slot) => (
+                      <button
+                        key={slot.datetime}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`py-3 px-3 rounded-xl border-2 transition-all font-medium ${
+                          selectedSlot?.datetime === slot.datetime
+                            ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg'
+                            : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'
+                        }`}
+                      >
+                        {slot.time}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Observações (opcional)</h4>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Descreva brevemente o que gostaria de abordar na sessão..."
+                  className="w-full p-3 border border-gray-200 rounded-xl resize-none h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Summary and Confirm */}
+              {selectedSlot && (
+                <div className="bg-indigo-50 rounded-xl p-4">
+                  <h4 className="font-semibold text-indigo-900 mb-2">Resumo do Agendamento</h4>
+                  <div className="space-y-1 text-sm text-indigo-700">
+                    <p><strong>Profissional:</strong> {selectedProfessional.name}</p>
+                    <p className="capitalize"><strong>Data:</strong> {formatDate(selectedDate)}</p>
+                    <p><strong>Horário:</strong> {selectedSlot.time}</p>
+                    <p><strong>Duração:</strong> {selectedSlot.duration} minutos</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Confirm Button */}
               <button
-                onClick={() => changeDate(-1)}
-                disabled={selectedDate <= new Date()}
-                className="p-2 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleBookAppointment}
+                disabled={!selectedSlot || booking}
+                className="w-full py-3 bg-indigo-500 text-white rounded-xl font-semibold hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="font-medium text-gray-900 capitalize">{formatDate(selectedDate)}</span>
-              <button
-                onClick={() => changeDate(1)}
-                className="p-2 hover:bg-gray-200 rounded-lg"
-              >
-                <ChevronRight className="w-5 h-5" />
+                {booking ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Check className="w-5 h-5" />
+                    Confirmar Agendamento
+                  </>
+                )}
               </button>
             </div>
           </div>
-
-          {/* Time Slots */}
-          <div className="mb-6">
-            <h4 className="font-semibold text-gray-900 mb-3">Horários disponíveis</h4>
-            {availableSlots.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Nenhum horário disponível nesta data</p>
-            ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {availableSlots.map((slot) => (
-                  <button
-                    key={slot.datetime}
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`py-2 px-3 rounded-lg border transition-colors ${
-                      selectedSlot?.datetime === slot.datetime
-                        ? 'bg-indigo-500 text-white border-indigo-500'
-                        : 'border-gray-200 hover:border-indigo-300'
-                    }`}
-                  >
-                    {slot.time}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Notes */}
-          <div className="mb-6">
-            <h4 className="font-semibold text-gray-900 mb-3">Observações (opcional)</h4>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Descreva brevemente o que gostaria de abordar na sessão..."
-              className="w-full p-3 border border-gray-200 rounded-xl resize-none h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          {/* Confirm Button */}
-          <button
-            onClick={handleBookAppointment}
-            disabled={!selectedSlot || booking}
-            className="w-full py-3 bg-indigo-500 text-white rounded-xl font-semibold hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-          >
-            {booking ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <Check className="w-5 h-5" />
-                Confirmar Agendamento
-              </>
-            )}
-          </button>
         </div>
       )}
     </div>

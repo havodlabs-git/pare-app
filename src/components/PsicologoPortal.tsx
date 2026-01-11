@@ -9,7 +9,7 @@ import { API_URL } from '../config/api';
 
 interface Appointment {
   id: string;
-  userId: string;
+  odUserId: string;
   userName: string;
   userEmail: string;
   scheduledAt: Date;
@@ -45,6 +45,14 @@ interface DashboardStats {
   rating: number;
 }
 
+interface CalendarDay {
+  date: Date;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  hasAppointments: boolean;
+  appointmentCount: number;
+}
+
 type View = 'login' | 'register' | 'dashboard' | 'agenda' | 'patients' | 'profile' | 'settings';
 
 const PsicologoPortal: React.FC = () => {
@@ -76,10 +84,12 @@ const PsicologoPortal: React.FC = () => {
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
   
-  // Dashboard state
+  // Dashboard/Calendar state
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [monthAppointments, setMonthAppointments] = useState<Record<string, Appointment[]>>({});
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loading, setLoading] = useState(false);
 
   // Check if already logged in
@@ -129,7 +139,7 @@ const PsicologoPortal: React.FC = () => {
     }
   };
 
-  // Load appointments
+  // Load appointments for a specific date
   const loadAppointments = async (date?: Date) => {
     if (!token) return;
     setLoading(true);
@@ -141,6 +151,27 @@ const PsicologoPortal: React.FC = () => {
       console.error('Error loading appointments:', error);
     }
     setLoading(false);
+  };
+
+  // Load appointments for the entire month
+  const loadMonthAppointments = async (month: Date) => {
+    if (!token) return;
+    try {
+      const year = month.getFullYear();
+      const monthNum = month.getMonth() + 1;
+      const response = await apiRequest(`/api/professionals/appointments?month=${year}-${String(monthNum).padStart(2, '0')}`, { method: 'GET' });
+      
+      // Group appointments by date
+      const grouped: Record<string, Appointment[]> = {};
+      (response.data || []).forEach((apt: Appointment) => {
+        const dateKey = new Date(apt.scheduledAt).toISOString().split('T')[0];
+        if (!grouped[dateKey]) grouped[dateKey] = [];
+        grouped[dateKey].push(apt);
+      });
+      setMonthAppointments(grouped);
+    } catch (error) {
+      console.error('Error loading month appointments:', error);
+    }
   };
 
   // Login handler
@@ -177,7 +208,6 @@ const PsicologoPortal: React.FC = () => {
     setRegisterLoading(true);
     setRegisterError('');
 
-    // Validation
     if (registerForm.password !== registerForm.confirmPassword) {
       setRegisterError('As senhas não coincidem');
       setRegisterLoading(false);
@@ -238,16 +268,91 @@ const PsicologoPortal: React.FC = () => {
         body: JSON.stringify({ status }),
       });
       loadAppointments();
+      loadMonthAppointments(currentMonth);
     } catch (error) {
       alert('Erro ao atualizar status');
     }
   };
 
-  // Format date
+  // Calendar helpers
+  const getDaysInMonth = (date: Date): CalendarDay[] => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const days: CalendarDay[] = [];
+    
+    // Add days from previous month
+    const firstDayOfWeek = firstDay.getDay();
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const d = new Date(year, month, -i);
+      const dateKey = d.toISOString().split('T')[0];
+      days.push({
+        date: d,
+        isCurrentMonth: false,
+        isToday: false,
+        hasAppointments: !!monthAppointments[dateKey]?.length,
+        appointmentCount: monthAppointments[dateKey]?.length || 0
+      });
+    }
+    
+    // Add days of current month
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const d = new Date(year, month, i);
+      const dateKey = d.toISOString().split('T')[0];
+      days.push({
+        date: d,
+        isCurrentMonth: true,
+        isToday: d.getTime() === today.getTime(),
+        hasAppointments: !!monthAppointments[dateKey]?.length,
+        appointmentCount: monthAppointments[dateKey]?.length || 0
+      });
+    }
+    
+    // Add days from next month
+    const remainingDays = 42 - days.length;
+    for (let i = 1; i <= remainingDays; i++) {
+      const d = new Date(year, month + 1, i);
+      const dateKey = d.toISOString().split('T')[0];
+      days.push({
+        date: d,
+        isCurrentMonth: false,
+        isToday: false,
+        hasAppointments: !!monthAppointments[dateKey]?.length,
+        appointmentCount: monthAppointments[dateKey]?.length || 0
+      });
+    }
+    
+    return days;
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(newMonth.getMonth() + (direction === 'next' ? 1 : -1));
+    setCurrentMonth(newMonth);
+    loadMonthAppointments(newMonth);
+  };
+
+  const selectDate = (date: Date) => {
+    setSelectedDate(date);
+    loadAppointments(date);
+  };
+
+  // Format helpers
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('pt-BR', {
       weekday: 'long',
       day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
+  };
+
+  const formatMonthYear = (date: Date) => {
+    return new Intl.DateTimeFormat('pt-BR', {
       month: 'long',
       year: 'numeric'
     }).format(date);
@@ -261,18 +366,11 @@ const PsicologoPortal: React.FC = () => {
     }).format(d);
   };
 
-  // Navigate dates
-  const navigateDate = (direction: 'prev' | 'next') => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
-    setSelectedDate(newDate);
-    loadAppointments(newDate);
-  };
-
   // Load data when view changes
   useEffect(() => {
     if (isLoggedIn && currentView === 'agenda') {
       loadAppointments();
+      loadMonthAppointments(currentMonth);
     }
   }, [currentView, isLoggedIn]);
 
@@ -636,121 +734,199 @@ const PsicologoPortal: React.FC = () => {
     </div>
   );
 
-  // Render Agenda
-  const renderAgenda = () => (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-zinc-900">Agenda</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigateDate('prev')}
-            className="p-2 hover:bg-zinc-100 rounded-lg"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="text-lg font-medium px-4">{formatDate(selectedDate)}</span>
-          <button
-            onClick={() => navigateDate('next')}
-            className="p-2 hover:bg-zinc-100 rounded-lg"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+  // Render Calendar Component
+  const renderCalendar = () => {
+    const days = getDaysInMonth(currentMonth);
+    const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
+    return (
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-zinc-100">
+        {/* Calendar Header */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigateMonth('prev')}
+            className="p-2 hover:bg-zinc-100 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-zinc-600" />
+          </button>
+          <h3 className="text-lg font-semibold text-zinc-900 capitalize">
+            {formatMonthYear(currentMonth)}
+          </h3>
+          <button
+            onClick={() => navigateMonth('next')}
+            className="p-2 hover:bg-zinc-100 rounded-lg transition-colors"
+          >
+            <ChevronRight className="w-5 h-5 text-zinc-600" />
+          </button>
         </div>
-      ) : appointments.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-zinc-100">
-          <Calendar className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
-          <p className="text-zinc-500">Nenhuma consulta agendada para este dia</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {appointments.map((apt) => (
-            <div key={apt.id} className="bg-white rounded-2xl p-5 shadow-sm border border-zinc-100">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 bg-teal-100 rounded-xl flex items-center justify-center">
-                    <User className="w-7 h-7 text-teal-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-zinc-900 text-lg">{apt.userName}</h3>
-                    <p className="text-zinc-500 text-sm">{apt.userEmail}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1 text-sm text-zinc-600">
-                        <Clock className="w-4 h-4" />
-                        {formatTime(apt.scheduledAt)}
-                      </span>
-                      <span className="text-sm text-zinc-600">{apt.duration} minutos</span>
-                    </div>
-                    {apt.notes && (
-                      <p className="mt-2 text-sm text-zinc-500 bg-zinc-50 p-2 rounded-lg">
-                        <FileText className="w-4 h-4 inline mr-1" />
-                        {apt.notes}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                    apt.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
-                    apt.status === 'completed' ? 'bg-zinc-100 text-zinc-700' :
-                    apt.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                    'bg-amber-100 text-amber-700'
-                  }`}>
-                    {apt.status === 'confirmed' ? 'Confirmado' :
-                     apt.status === 'scheduled' ? 'Agendado' :
-                     apt.status === 'completed' ? 'Concluído' :
-                     apt.status === 'cancelled' ? 'Cancelado' : 'Não compareceu'}
-                  </span>
-                  <div className="flex gap-2 mt-2">
-                    {apt.zoomStartUrl && apt.status !== 'completed' && apt.status !== 'cancelled' && (
-                      <a
-                        href={apt.zoomStartUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 flex items-center gap-1"
-                      >
-                        <Video className="w-4 h-4" />
-                        Iniciar
-                      </a>
-                    )}
-                    {apt.status === 'scheduled' && (
-                      <button
-                        onClick={() => handleUpdateStatus(apt.id, 'confirmed')}
-                        className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 flex items-center gap-1"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Confirmar
-                      </button>
-                    )}
-                    {(apt.status === 'scheduled' || apt.status === 'confirmed') && (
-                      <>
-                        <button
-                          onClick={() => handleUpdateStatus(apt.id, 'completed')}
-                          className="px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded-lg text-sm font-medium hover:bg-zinc-200"
-                        >
-                          Concluir
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(apt.id, 'no-show')}
-                          className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200"
-                        >
-                          Não compareceu
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+
+        {/* Week Days Header */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {weekDays.map((day) => (
+            <div key={day} className="text-center text-xs font-medium text-zinc-500 py-2">
+              {day}
             </div>
           ))}
         </div>
-      )}
+
+        {/* Calendar Days */}
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day, index) => {
+            const isSelected = day.date.toDateString() === selectedDate.toDateString();
+            return (
+              <button
+                key={index}
+                onClick={() => selectDate(day.date)}
+                className={`
+                  relative p-2 h-12 rounded-lg text-sm font-medium transition-all
+                  ${!day.isCurrentMonth ? 'text-zinc-300' : 'text-zinc-700'}
+                  ${day.isToday ? 'ring-2 ring-teal-500 ring-offset-1' : ''}
+                  ${isSelected ? 'bg-teal-500 text-white' : 'hover:bg-zinc-100'}
+                `}
+              >
+                <span>{day.date.getDate()}</span>
+                {day.hasAppointments && (
+                  <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-teal-500'}`} />
+                )}
+                {day.appointmentCount > 0 && (
+                  <span className={`absolute top-0.5 right-0.5 text-[10px] font-bold ${isSelected ? 'text-teal-100' : 'text-teal-600'}`}>
+                    {day.appointmentCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Render Agenda with Calendar
+  const renderAgenda = () => (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold text-zinc-900 mb-6">Agenda</h2>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Calendar */}
+        <div className="lg:col-span-1">
+          {renderCalendar()}
+          
+          {/* Selected Date Info */}
+          <div className="mt-4 bg-teal-50 rounded-xl p-4">
+            <p className="text-sm text-teal-700 font-medium capitalize">
+              {formatDate(selectedDate)}
+            </p>
+            <p className="text-2xl font-bold text-teal-900 mt-1">
+              {appointments.length} consulta{appointments.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        {/* Appointments List */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
+            <div className="p-4 border-b border-zinc-100">
+              <h3 className="font-semibold text-zinc-900">
+                Consultas do dia
+              </h3>
+            </div>
+            
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : appointments.length === 0 ? (
+              <div className="p-12 text-center">
+                <Calendar className="w-16 h-16 text-zinc-200 mx-auto mb-4" />
+                <p className="text-zinc-500">Nenhuma consulta agendada para este dia</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-100">
+                {appointments.map((apt) => (
+                  <div key={apt.id} className="p-4 hover:bg-zinc-50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <User className="w-6 h-6 text-teal-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-zinc-900">{apt.userName}</h4>
+                          <p className="text-sm text-zinc-500">{apt.userEmail}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="flex items-center gap-1 text-sm text-zinc-600">
+                              <Clock className="w-4 h-4" />
+                              {formatTime(apt.scheduledAt)}
+                            </span>
+                            <span className="text-sm text-zinc-400">•</span>
+                            <span className="text-sm text-zinc-600">{apt.duration} min</span>
+                          </div>
+                          {apt.notes && (
+                            <p className="mt-2 text-sm text-zinc-500 bg-zinc-100 p-2 rounded-lg">
+                              {apt.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                          apt.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                          apt.status === 'completed' ? 'bg-zinc-100 text-zinc-700' :
+                          apt.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {apt.status === 'confirmed' ? 'Confirmado' :
+                           apt.status === 'scheduled' ? 'Agendado' :
+                           apt.status === 'completed' ? 'Concluído' :
+                           apt.status === 'cancelled' ? 'Cancelado' : 'Não compareceu'}
+                        </span>
+                        <div className="flex flex-wrap gap-2 mt-2 justify-end">
+                          {apt.zoomStartUrl && apt.status !== 'completed' && apt.status !== 'cancelled' && (
+                            <a
+                              href={apt.zoomStartUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 flex items-center gap-1"
+                            >
+                              <Video className="w-4 h-4" />
+                              Iniciar
+                            </a>
+                          )}
+                          {apt.status === 'scheduled' && (
+                            <button
+                              onClick={() => handleUpdateStatus(apt.id, 'confirmed')}
+                              className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 flex items-center gap-1"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Confirmar
+                            </button>
+                          )}
+                          {(apt.status === 'scheduled' || apt.status === 'confirmed') && (
+                            <>
+                              <button
+                                onClick={() => handleUpdateStatus(apt.id, 'completed')}
+                                className="px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded-lg text-sm font-medium hover:bg-zinc-200"
+                              >
+                                Concluir
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(apt.id, 'no-show')}
+                                className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200"
+                              >
+                                Faltou
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 
