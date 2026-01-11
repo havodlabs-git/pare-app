@@ -21,6 +21,7 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         admin: path.resolve(__dirname, 'admin.html'),
+        psicologo: path.resolve(__dirname, 'psicologo.html'),
       },
     },
   },
