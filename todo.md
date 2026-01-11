@@ -8,5 +8,5 @@
 - [x] Portal do Psicólogo - Perfil
 
 ## Em Progresso
-- [ ] Calendário visual na agenda do psicólogo
-- [ ] Calendário no agendamento do usuário
+- [x] Calendário visual na agenda do psicólogo
+- [x] Calendário no agendamento do usuário

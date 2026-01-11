@@ -285,10 +285,10 @@ const PsicologoPortal: React.FC = () => {
     
     const days: CalendarDay[] = [];
     
-    // Add days from previous month
+    // Add days from previous month (Sunday = 0)
     const firstDayOfWeek = firstDay.getDay();
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-      const d = new Date(year, month, -i);
+    for (let i = firstDayOfWeek; i > 0; i--) {
+      const d = new Date(year, month, 1 - i);
       const dateKey = d.toISOString().split('T')[0];
       days.push({
         date: d,
