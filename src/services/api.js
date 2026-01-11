@@ -45,6 +45,42 @@ class ApiService {
     }
   }
 
+  // Generic HTTP methods (axios-like interface for AdminPanel)
+  async get(endpoint, config = {}) {
+    let url = endpoint;
+    if (config.params) {
+      const queryParams = new URLSearchParams(config.params).toString();
+      if (queryParams) {
+        url = `${endpoint}?${queryParams}`;
+      }
+    }
+    const response = await this.request(`/api${url}`, { method: 'GET' });
+    return { data: response };
+  }
+
+  async post(endpoint, data = {}) {
+    const response = await this.request(`/api${endpoint}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return { data: response };
+  }
+
+  async put(endpoint, data = {}) {
+    const response = await this.request(`/api${endpoint}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return { data: response };
+  }
+
+  async delete(endpoint) {
+    const response = await this.request(`/api${endpoint}`, {
+      method: 'DELETE',
+    });
+    return { data: response };
+  }
+
   // Set token
   setToken(token) {
     this.token = token;

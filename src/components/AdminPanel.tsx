@@ -3,7 +3,7 @@ import {
   Users, MessageSquare, UserCheck, Calendar, Settings, 
   BarChart3, Search, MoreVertical, Ban, CheckCircle, 
   Trash2, Edit, Plus, Video, X, Eye, ChevronLeft, ChevronRight,
-  TrendingUp, DollarSign, Clock, Shield
+  TrendingUp, DollarSign, Clock, Shield, LogIn, LogOut
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -52,8 +52,14 @@ interface Professional {
 type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'zoom';
 
 const AdminPanel: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
   // Dashboard
@@ -79,9 +85,46 @@ const AdminPanel: React.FC = () => {
   const [zoomConfig, setZoomConfig] = useState({ accountId: '', clientId: '', clientSecret: '' });
   const [zoomConfigured, setZoomConfigured] = useState(false);
 
+  // Check if already logged in
   useEffect(() => {
-    loadData();
-  }, [activeTab]);
+    const token = localStorage.getItem('pare_token');
+    if (token) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadData();
+    }
+  }, [activeTab, isLoggedIn]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError('');
+    
+    try {
+      const response = await api.login(loginEmail, loginPassword);
+      if (response.success && response.data?.token) {
+        setIsLoggedIn(true);
+        setLoginEmail('');
+        setLoginPassword('');
+      }
+    } catch (err: any) {
+      setLoginError(err.message || 'Erro ao fazer login');
+    }
+    setLoginLoading(false);
+  };
+
+  const handleLogout = () => {
+    api.clearToken();
+    setIsLoggedIn(false);
+    setDashboardData(null);
+    setUsers([]);
+    setPosts([]);
+    setProfessionals([]);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -110,7 +153,12 @@ const AdminPanel: React.FC = () => {
           break;
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao carregar dados');
+      const message = err.message || 'Erro ao carregar dados';
+      setError(message);
+      // If unauthorized, logout
+      if (message.includes('autorizado') || message.includes('Token')) {
+        handleLogout();
+      }
     }
     setLoading(false);
   };
@@ -169,7 +217,7 @@ const AdminPanel: React.FC = () => {
       setProfessionalForm({ name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0, zoomEmail: '' });
       loadData();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erro ao salvar profissional');
+      alert(err.message || 'Erro ao salvar profissional');
     }
   };
 
@@ -227,6 +275,74 @@ const AdminPanel: React.FC = () => {
     { id: 'zoom', label: 'Zoom', icon: Video },
   ];
 
+  // Login screen
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <Shield className="w-10 h-10 text-indigo-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-900">Admin Panel</h1>
+              <p className="text-sm text-zinc-500">Pare! App</p>
+            </div>
+          </div>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            {loginError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                {loginError}
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="admin@example.com"
+                required
+                className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Senha</label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loginLoading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              ) : (
+                <>
+                  <LogIn className="w-5 h-5" />
+                  Entrar
+                </>
+              )}
+            </button>
+          </form>
+          
+          <p className="text-xs text-zinc-400 text-center mt-6">
+            Apenas administradores podem acessar este painel
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 flex">
       {/* Sidebar */}
@@ -255,6 +371,16 @@ const AdminPanel: React.FC = () => {
             </button>
           ))}
         </nav>
+        
+        <div className="mt-8 pt-8 border-t border-zinc-200">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Sair</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -294,7 +420,7 @@ const AdminPanel: React.FC = () => {
                       <UserCheck className="w-8 h-8 text-purple-600" />
                     </div>
                     <p className="text-3xl font-bold text-zinc-900">{dashboardData.professionals.total}</p>
-                    <p className="text-sm text-zinc-500">Psicólogos Ativos</p>
+                    <p className="text-sm text-zinc-500">Psicólogos</p>
                   </div>
                   
                   <div className="bg-white rounded-xl p-6 border border-zinc-200">
@@ -306,21 +432,21 @@ const AdminPanel: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Users by Plan */}
+                {/* Plan Distribution */}
                 <div className="bg-white rounded-xl p-6 border border-zinc-200">
-                  <h3 className="font-semibold text-zinc-900 mb-4">Usuários por Plano</h3>
-                  <div className="flex gap-8">
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-zinc-400"></div>
-                      <span className="text-zinc-600">Free: {dashboardData.users.byPlan.free}</span>
+                  <h3 className="text-lg font-semibold text-zinc-900 mb-4">Distribuição por Plano</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-zinc-50 rounded-lg">
+                      <p className="text-2xl font-bold text-zinc-900">{dashboardData.users.byPlan.free}</p>
+                      <p className="text-sm text-zinc-500">Free</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-indigo-500"></div>
-                      <span className="text-zinc-600">Premium: {dashboardData.users.byPlan.premium}</span>
+                    <div className="text-center p-4 bg-indigo-50 rounded-lg">
+                      <p className="text-2xl font-bold text-indigo-600">{dashboardData.users.byPlan.premium}</p>
+                      <p className="text-sm text-zinc-500">Premium</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-amber-500"></div>
-                      <span className="text-zinc-600">Elite: {dashboardData.users.byPlan.elite}</span>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <p className="text-2xl font-bold text-purple-600">{dashboardData.users.byPlan.elite}</p>
+                      <p className="text-sm text-zinc-500">Elite</p>
                     </div>
                   </div>
                 </div>
@@ -332,12 +458,12 @@ const AdminPanel: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-zinc-900">Usuários</h2>
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     <div className="relative">
                       <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                       <input
                         type="text"
-                        placeholder="Buscar usuário..."
+                        placeholder="Buscar..."
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && loadData()}
@@ -346,7 +472,7 @@ const AdminPanel: React.FC = () => {
                     </div>
                     <select
                       value={userPlanFilter}
-                      onChange={(e) => { setUserPlanFilter(e.target.value); setTimeout(loadData, 100); }}
+                      onChange={(e) => { setUserPlanFilter(e.target.value); loadData(); }}
                       className="px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="">Todos os planos</option>
@@ -359,17 +485,17 @@ const AdminPanel: React.FC = () => {
 
                 <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-zinc-50 border-b border-zinc-200">
+                    <thead className="bg-zinc-50">
                       <tr>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Usuário</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Plano</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Sequência</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Pontos</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Status</th>
-                        <th className="text-right px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Ações</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Usuário</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Plano</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Streak</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Pontos</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Status</th>
+                        <th className="text-right px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y divide-zinc-200">
                       {users.map(user => (
                         <tr key={user.id} className="hover:bg-zinc-50">
                           <td className="px-6 py-4">
@@ -379,21 +505,21 @@ const AdminPanel: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              user.plan === 'elite' ? 'bg-amber-100 text-amber-700' :
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              user.plan === 'elite' ? 'bg-purple-100 text-purple-700' :
                               user.plan === 'premium' ? 'bg-indigo-100 text-indigo-700' :
                               'bg-zinc-100 text-zinc-700'
                             }`}>
-                              {user.plan?.charAt(0).toUpperCase() + user.plan?.slice(1)}
+                              {user.plan || 'free'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-zinc-600">{user.streak || 0} dias</td>
                           <td className="px-6 py-4 text-zinc-600">{user.points || 0}</td>
                           <td className="px-6 py-4">
                             {user.isBanned ? (
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Banido</span>
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Banido</span>
                             ) : (
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Ativo</span>
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Ativo</span>
                             )}
                           </td>
                           <td className="px-6 py-4 text-right">
@@ -416,6 +542,11 @@ const AdminPanel: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                  {users.length === 0 && (
+                    <div className="text-center py-12 text-zinc-500">
+                      Nenhum usuário encontrado
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -424,18 +555,19 @@ const AdminPanel: React.FC = () => {
             {activeTab === 'posts' && (
               <div>
                 <h2 className="text-2xl font-bold text-zinc-900 mb-6">Posts do Fórum</h2>
+                
                 <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-zinc-50 border-b border-zinc-200">
+                    <thead className="bg-zinc-50">
                       <tr>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Título</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Autor</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Categoria</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Curtidas</th>
-                        <th className="text-right px-6 py-3 text-xs font-semibold text-zinc-500 uppercase">Ações</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Título</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Autor</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Categoria</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Likes</th>
+                        <th className="text-right px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y divide-zinc-200">
                       {posts.map(post => (
                         <tr key={post.id} className="hover:bg-zinc-50">
                           <td className="px-6 py-4">
@@ -443,7 +575,7 @@ const AdminPanel: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 text-zinc-600">{post.authorName}</td>
                           <td className="px-6 py-4">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-zinc-100 text-zinc-700">
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-zinc-100 text-zinc-700">
                               {post.category}
                             </span>
                           </td>
@@ -457,6 +589,11 @@ const AdminPanel: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                  {posts.length === 0 && (
+                    <div className="text-center py-12 text-zinc-500">
+                      Nenhum post encontrado
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -467,10 +604,14 @@ const AdminPanel: React.FC = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-zinc-900">Psicólogos</h2>
                   <button
-                    onClick={() => { setEditingProfessional(null); setProfessionalForm({ name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0, zoomEmail: '' }); setShowProfessionalModal(true); }}
+                    onClick={() => {
+                      setEditingProfessional(null);
+                      setProfessionalForm({ name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0, zoomEmail: '' });
+                      setShowProfessionalModal(true);
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4" />
                     Adicionar Psicólogo
                   </button>
                 </div>
@@ -480,67 +621,53 @@ const AdminPanel: React.FC = () => {
                     <div key={prof.id} className="bg-white rounded-xl border border-zinc-200 p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          {prof.photoUrl ? (
-                            <img src={prof.photoUrl} alt={prof.name} className="w-12 h-12 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                              <UserCheck className="w-6 h-6 text-indigo-600" />
-                            </div>
-                          )}
+                          <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <UserCheck className="w-6 h-6 text-indigo-600" />
+                          </div>
                           <div>
-                            <p className="font-semibold text-zinc-900">{prof.name}</p>
+                            <p className="font-medium text-zinc-900">{prof.name}</p>
                             <p className="text-sm text-zinc-500">{prof.specialty}</p>
                           </div>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          prof.isActive ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          prof.isActive ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-700'
                         }`}>
                           {prof.isActive ? 'Ativo' : 'Inativo'}
                         </span>
                       </div>
                       
-                      <div className="space-y-2 mb-4">
-                        <p className="text-sm text-zinc-600"><span className="font-medium">CRP:</span> {prof.crp}</p>
-                        <p className="text-sm text-zinc-600"><span className="font-medium">Email:</span> {prof.email}</p>
-                        {prof.hourlyRate > 0 && (
-                          <p className="text-sm text-zinc-600"><span className="font-medium">Valor/hora:</span> R$ {prof.hourlyRate}</p>
-                        )}
+                      <div className="space-y-2 text-sm text-zinc-600 mb-4">
+                        <p>CRP: {prof.crp}</p>
+                        <p>Email: {prof.email}</p>
+                        <p>Valor/hora: R$ {prof.hourlyRate || 0}</p>
                       </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditProfessional(prof)}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-zinc-200 rounded-lg text-zinc-600 hover:bg-zinc-50 transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
+                      
+                      <div className="flex items-center gap-2 pt-4 border-t border-zinc-200">
+                        <button onClick={() => handleEditProfessional(prof)} className="flex-1 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-medium">
                           Editar
                         </button>
-                        <button
-                          onClick={() => handleToggleProfessional(prof.id, prof.isActive)}
-                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                            prof.isActive 
-                              ? 'border border-orange-200 text-orange-600 hover:bg-orange-50' 
-                              : 'border border-green-200 text-green-600 hover:bg-green-50'
-                          }`}
-                        >
+                        <button onClick={() => handleToggleProfessional(prof.id, prof.isActive)} className="flex-1 px-3 py-2 text-zinc-600 hover:bg-zinc-50 rounded-lg text-sm font-medium">
                           {prof.isActive ? 'Desativar' : 'Ativar'}
                         </button>
-                        <button
-                          onClick={() => handleDeleteProfessional(prof.id)}
-                          className="p-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                        >
+                        <button onClick={() => handleDeleteProfessional(prof.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
+                
+                {professionals.length === 0 && (
+                  <div className="text-center py-12 text-zinc-500 bg-white rounded-xl border border-zinc-200">
+                    Nenhum psicólogo cadastrado
+                  </div>
+                )}
 
                 {/* Professional Modal */}
                 {showProfessionalModal && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4">
-                      <div className="flex items-center justify-between p-6 border-b border-zinc-200">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                      <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-semibold text-zinc-900">
                           {editingProfessional ? 'Editar Psicólogo' : 'Novo Psicólogo'}
                         </h3>
@@ -549,7 +676,7 @@ const AdminPanel: React.FC = () => {
                         </button>
                       </div>
                       
-                      <div className="p-6 space-y-4">
+                      <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-zinc-700 mb-1">Nome</label>
                           <input
@@ -579,27 +706,41 @@ const AdminPanel: React.FC = () => {
                             />
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-700 mb-1">Especialidade</label>
-                            <input
-                              type="text"
-                              value={professionalForm.specialty}
-                              onChange={(e) => setProfessionalForm({ ...professionalForm, specialty: e.target.value })}
-                              placeholder="Ex: Psicologia Clínica"
-                              className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-700 mb-1">CRP</label>
-                            <input
-                              type="text"
-                              value={professionalForm.crp}
-                              onChange={(e) => setProfessionalForm({ ...professionalForm, crp: e.target.value })}
-                              placeholder="Ex: 06/123456"
-                              className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Especialidade</label>
+                          <input
+                            type="text"
+                            value={professionalForm.specialty}
+                            onChange={(e) => setProfessionalForm({ ...professionalForm, specialty: e.target.value })}
+                            className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">CRP</label>
+                          <input
+                            type="text"
+                            value={professionalForm.crp}
+                            onChange={(e) => setProfessionalForm({ ...professionalForm, crp: e.target.value })}
+                            className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Valor por Hora (R$)</label>
+                          <input
+                            type="number"
+                            value={professionalForm.hourlyRate}
+                            onChange={(e) => setProfessionalForm({ ...professionalForm, hourlyRate: Number(e.target.value) })}
+                            className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Email do Zoom</label>
+                          <input
+                            type="email"
+                            value={professionalForm.zoomEmail}
+                            onChange={(e) => setProfessionalForm({ ...professionalForm, zoomEmail: e.target.value })}
+                            className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-zinc-700 mb-1">Bio</label>
@@ -610,50 +751,21 @@ const AdminPanel: React.FC = () => {
                             className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-zinc-700 mb-1">URL da Foto</label>
-                          <input
-                            type="url"
-                            value={professionalForm.photoUrl}
-                            onChange={(e) => setProfessionalForm({ ...professionalForm, photoUrl: e.target.value })}
-                            className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          />
+                        
+                        <div className="flex gap-3 pt-4">
+                          <button
+                            onClick={() => setShowProfessionalModal(false)}
+                            className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={handleSaveProfessional}
+                            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                          >
+                            Salvar
+                          </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-700 mb-1">Valor/hora (R$)</label>
-                            <input
-                              type="number"
-                              value={professionalForm.hourlyRate}
-                              onChange={(e) => setProfessionalForm({ ...professionalForm, hourlyRate: parseFloat(e.target.value) || 0 })}
-                              className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-700 mb-1">Email do Zoom</label>
-                            <input
-                              type="email"
-                              value={professionalForm.zoomEmail}
-                              onChange={(e) => setProfessionalForm({ ...professionalForm, zoomEmail: e.target.value })}
-                              className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3 p-6 border-t border-zinc-200">
-                        <button
-                          onClick={() => setShowProfessionalModal(false)}
-                          className="flex-1 px-4 py-2 border border-zinc-200 rounded-lg text-zinc-600 hover:bg-zinc-50 transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          onClick={handleSaveProfessional}
-                          className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                        >
-                          Salvar
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -667,19 +779,13 @@ const AdminPanel: React.FC = () => {
                 <h2 className="text-2xl font-bold text-zinc-900 mb-6">Configuração do Zoom</h2>
                 
                 <div className="bg-white rounded-xl border border-zinc-200 p-6 max-w-xl">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Video className="w-8 h-8 text-blue-600" />
-                    <div>
-                      <h3 className="font-semibold text-zinc-900">Integração Zoom</h3>
-                      <p className="text-sm text-zinc-500">Configure as credenciais da API do Zoom para videochamadas</p>
+                  {zoomConfigured && (
+                    <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-6 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Zoom configurado e funcionando
                     </div>
-                    {zoomConfigured && (
-                      <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                        Configurado
-                      </span>
-                    )}
-                  </div>
-
+                  )}
+                  
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 mb-1">Account ID</label>
