@@ -3,7 +3,7 @@ import {
   Calendar, Clock, User, Video, Settings, LogOut, LogIn,
   ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertCircle,
   Phone, Mail, FileText, Star, TrendingUp, Users, Heart,
-  Eye, EyeOff, UserPlus, Shield, Award
+  Eye, EyeOff, UserPlus, Shield, Award, MessageCircle, Send
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 
@@ -53,7 +53,29 @@ interface CalendarDay {
   appointmentCount: number;
 }
 
-type View = 'login' | 'register' | 'dashboard' | 'agenda' | 'patients' | 'profile' | 'settings';
+type View = 'login' | 'register' | 'dashboard' | 'agenda' | 'chat' | 'patients' | 'profile' | 'settings';
+
+interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderType: 'user' | 'professional';
+  senderName: string;
+  content: string;
+  createdAt: string;
+  read: boolean;
+}
+
+interface ChatConversation {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhotoUrl: string | null;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  unreadByProfessional: number;
+  status: string;
+}
 
 const PsicologoPortal: React.FC = () => {
   // Auth state
@@ -91,6 +113,14 @@ const PsicologoPortal: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loading, setLoading] = useState(false);
+  
+  // Chat state
+  const [chatConversations, setChatConversations] = useState<ChatConversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Check if already logged in
   useEffect(() => {
@@ -930,6 +960,226 @@ const PsicologoPortal: React.FC = () => {
     </div>
   );
 
+  // Chat functions
+  const loadChatConversations = async () => {
+    if (!token) return;
+    setChatLoading(true);
+    try {
+      const data = await apiRequest('/chat/professional/conversations', {}, token);
+      if (data.success) {
+        setChatConversations(data.data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar conversas:', error);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const loadChatMessages = async (conversationId: string) => {
+    if (!token) return;
+    try {
+      const data = await apiRequest(`/chat/professional/conversations/${conversationId}/messages`, {}, token);
+      if (data.success) {
+        setChatMessages(data.data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+    }
+  };
+
+  const sendChatMessage = async () => {
+    if (!token || !selectedConversation || !newMessage.trim() || sendingMessage) return;
+    setSendingMessage(true);
+    const messageContent = newMessage.trim();
+    setNewMessage('');
+    
+    try {
+      await apiRequest('/chat/professional/messages', {
+        method: 'POST',
+        body: JSON.stringify({
+          conversationId: selectedConversation.id,
+          content: messageContent
+        })
+      }, token);
+      await loadChatMessages(selectedConversation.id);
+      await loadChatConversations();
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      setNewMessage(messageContent);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const formatChatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatChatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) return 'Hoje';
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) return 'Ontem';
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  // Render Chat
+  const renderChat = () => {
+    // Load conversations when entering chat view
+    if (chatConversations.length === 0 && !chatLoading) {
+      loadChatConversations();
+    }
+
+    return (
+      <div className="flex h-full" style={{ minHeight: '600px' }}>
+        {/* Conversations sidebar */}
+        <div className="w-80 bg-white border-r border-zinc-200 flex flex-col">
+          <div className="p-4 border-b border-zinc-200">
+            <h3 className="text-lg font-bold text-zinc-900">Mensagens</h3>
+          </div>
+          
+          {chatLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : chatConversations.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 p-4">
+              <MessageCircle className="w-12 h-12 mb-3 text-zinc-300" />
+              <p>Nenhuma conversa ainda</p>
+              <p className="text-sm text-center mt-2">Quando pacientes iniciarem conversas, elas aparecerão aqui.</p>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              {chatConversations.map(conv => (
+                <button
+                  key={conv.id}
+                  onClick={() => {
+                    setSelectedConversation(conv);
+                    loadChatMessages(conv.id);
+                  }}
+                  className={`w-full p-4 flex items-start gap-3 border-b border-zinc-100 hover:bg-zinc-50 transition-colors text-left ${
+                    selectedConversation?.id === conv.id ? 'bg-teal-50' : ''
+                  }`}
+                >
+                  <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    {conv.userPhotoUrl ? (
+                      <img src={conv.userPhotoUrl} alt="" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <User className="w-6 h-6 text-teal-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-zinc-900 truncate">{conv.userName}</span>
+                      {conv.lastMessageAt && (
+                        <span className="text-xs text-zinc-500">{formatChatDate(conv.lastMessageAt)}</span>
+                      )}
+                    </div>
+                    {conv.lastMessage && (
+                      <p className="text-sm text-zinc-500 truncate mt-1">{conv.lastMessage}</p>
+                    )}
+                    {conv.unreadByProfessional > 0 && (
+                      <span className="inline-block mt-1 px-2 py-0.5 bg-teal-500 text-white text-xs rounded-full">
+                        {conv.unreadByProfessional}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Chat area */}
+        <div className="flex-1 flex flex-col bg-zinc-50">
+          {selectedConversation ? (
+            <>
+              {/* Chat header */}
+              <div className="p-4 bg-white border-b border-zinc-200 flex items-center gap-3">
+                <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                  {selectedConversation.userPhotoUrl ? (
+                    <img src={selectedConversation.userPhotoUrl} alt="" className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <User className="w-5 h-5 text-teal-600" />
+                  )}
+                </div>
+                <div>
+                  <h4 className="font-medium text-zinc-900">{selectedConversation.userName}</h4>
+                  <span className="text-xs text-zinc-500">Paciente</span>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {chatMessages.map((msg, index) => {
+                  const isProfessional = msg.senderType === 'professional';
+                  const showDate = index === 0 || 
+                    formatChatDate(chatMessages[index - 1].createdAt) !== formatChatDate(msg.createdAt);
+                  
+                  return (
+                    <React.Fragment key={msg.id}>
+                      {showDate && (
+                        <div className="text-center text-xs text-zinc-500 my-4">
+                          {formatChatDate(msg.createdAt)}
+                        </div>
+                      )}
+                      <div className={`flex ${isProfessional ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[70%] px-4 py-3 rounded-2xl ${
+                          isProfessional 
+                            ? 'bg-teal-500 text-white rounded-br-sm' 
+                            : 'bg-white text-zinc-900 rounded-bl-sm shadow-sm'
+                        }`}>
+                          <p className="text-sm">{msg.content}</p>
+                          <span className={`text-xs mt-1 block text-right ${
+                            isProfessional ? 'text-teal-100' : 'text-zinc-400'
+                          }`}>
+                            {formatChatTime(msg.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+
+              {/* Input area */}
+              <div className="p-4 bg-white border-t border-zinc-200">
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                    placeholder="Digite sua mensagem..."
+                    className="flex-1 px-4 py-3 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    disabled={sendingMessage}
+                  />
+                  <button
+                    onClick={sendChatMessage}
+                    disabled={sendingMessage || !newMessage.trim()}
+                    className="px-6 py-3 bg-teal-500 text-white rounded-xl hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-zinc-500">
+              <MessageCircle className="w-16 h-16 mb-4 text-zinc-300" />
+              <h3 className="text-lg font-medium text-zinc-700">Selecione uma conversa</h3>
+              <p className="text-sm">Escolha uma conversa para ver as mensagens</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Render Profile
   const renderProfile = () => (
     <div className="p-6">
@@ -1006,6 +1256,7 @@ const PsicologoPortal: React.FC = () => {
             {[
               { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
               { id: 'agenda', label: 'Agenda', icon: Calendar },
+              { id: 'chat', label: 'Mensagens', icon: MessageCircle },
               { id: 'profile', label: 'Meu Perfil', icon: User },
             ].map((item) => (
               <li key={item.id}>
@@ -1049,6 +1300,7 @@ const PsicologoPortal: React.FC = () => {
       <main className="flex-1 overflow-auto">
         {currentView === 'dashboard' && renderDashboard()}
         {currentView === 'agenda' && renderAgenda()}
+        {currentView === 'chat' && renderChat()}
         {currentView === 'profile' && renderProfile()}
       </main>
     </div>
