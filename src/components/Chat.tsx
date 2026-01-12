@@ -85,8 +85,8 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
   const loadConversations = async () => {
     try {
       const response = await api.get('/chat/conversations');
-      if (response.success) {
-        setConversations(response.data);
+      if (response.data?.success) {
+        setConversations(response.data.data || []);
       }
     } catch (error) {
       console.error('Erro ao carregar conversas:', error);
@@ -98,8 +98,8 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
   const loadProfessionals = async () => {
     try {
       const response = await api.get('/chat/professionals');
-      if (response.success) {
-        setProfessionals(response.data);
+      if (response.data?.success) {
+        setProfessionals(response.data.data || []);
       }
     } catch (error) {
       console.error('Erro ao carregar profissionais:', error);
@@ -109,8 +109,8 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
   const loadMessages = async (conversationId: string, silent = false) => {
     try {
       const response = await api.get(`/chat/conversations/${conversationId}/messages`);
-      if (response.success) {
-        setMessages(response.data);
+      if (response.data?.success) {
+        setMessages(response.data.data || []);
       }
     } catch (error) {
       if (!silent) console.error('Erro ao carregar mensagens:', error);
@@ -121,8 +121,8 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
     try {
       setLoading(true);
       const response = await api.post('/chat/conversations', { professionalId });
-      if (response.success) {
-        setSelectedConversation(response.data);
+      if (response.data?.success) {
+        setSelectedConversation(response.data.data);
         setShowProfessionalList(false);
         await loadConversations();
       }

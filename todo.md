@@ -20,5 +20,8 @@
 
 
 ## Correções Chat
-- [ ] Botão de mensagens no painel do usuário
-- [ ] Exibição de mensagens no portal do psicólogo
+- [x] Botão de mensagens no painel do usuário
+- [x] Exibição de mensagens no portal do psicólogo
+
+## Bug - Listagem de Psicólogos no Chat
+- [ ] Psicólogos não aparecem na lista para iniciar conversa
