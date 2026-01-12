@@ -33,8 +33,8 @@ interface Professional {
 
 interface ChatProps {
   userPlan: string;
-  userId: string;
-  userName: string;
+  userId?: string;
+  userName?: string;
   onUpgrade?: () => void;
 }
 

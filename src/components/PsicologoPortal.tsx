@@ -965,7 +965,7 @@ const PsicologoPortal: React.FC = () => {
     if (!token) return;
     setChatLoading(true);
     try {
-      const data = await apiRequest('/chat/professional/conversations', {}, token);
+      const data = await apiRequest('/api/chat/professional/conversations', {}, token);
       if (data.success) {
         setChatConversations(data.data);
       }
@@ -979,7 +979,7 @@ const PsicologoPortal: React.FC = () => {
   const loadChatMessages = async (conversationId: string) => {
     if (!token) return;
     try {
-      const data = await apiRequest(`/chat/professional/conversations/${conversationId}/messages`, {}, token);
+      const data = await apiRequest(`/api/chat/professional/conversations/${conversationId}/messages`, {}, token);
       if (data.success) {
         setChatMessages(data.data);
       }
@@ -995,7 +995,7 @@ const PsicologoPortal: React.FC = () => {
     setNewMessage('');
     
     try {
-      await apiRequest('/chat/professional/messages', {
+      await apiRequest('/api/chat/professional/messages', {
         method: 'POST',
         body: JSON.stringify({
           conversationId: selectedConversation.id,

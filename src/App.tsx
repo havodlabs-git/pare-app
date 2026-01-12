@@ -13,7 +13,8 @@ import { ModuleSelector } from "./components/ModuleSelector";
 import { LogoWithText } from "./components/Logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./components/ui/alert-dialog";
-import { Home, Award, BarChart3, MessageSquare, LogOut, User, CreditCard, Video } from "lucide-react";
+import { Home, Award, BarChart3, MessageSquare, LogOut, User, CreditCard, Video, MessageCircle } from "lucide-react";
+import Chat from "./components/Chat";
 import { useToast } from "./context/ToastContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./components/ui/dropdown-menu";
 import { Button } from "./components/ui/button";
@@ -470,7 +471,7 @@ export default function App() {
 
           {/* Tabs Navigation */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-6 h-12">
+            <TabsList className="grid w-full grid-cols-7 mb-6 h-12">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <Home className="w-4 h-4" />
                 <span className="hidden sm:inline">Início</span>
@@ -490,6 +491,10 @@ export default function App() {
               <TabsTrigger value="sessions" className="flex items-center gap-2">
                 <Video className="w-4 h-4" />
                 <span className="hidden sm:inline">Sessões</span>
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">Chat</span>
               </TabsTrigger>
               <TabsTrigger value="pricing" className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4" />
@@ -535,6 +540,13 @@ export default function App() {
 
             <TabsContent value="sessions">
               <Appointments
+                userPlan={userProfile.plan}
+                onUpgrade={() => setActiveTab("pricing")}
+              />
+            </TabsContent>
+
+            <TabsContent value="chat">
+              <Chat
                 userPlan={userProfile.plan}
                 onUpgrade={() => setActiveTab("pricing")}
               />
