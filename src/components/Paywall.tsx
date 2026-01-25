@@ -121,7 +121,7 @@ const Paywall: React.FC<PaywallProps> = ({ onClose, trialDaysRemaining = 0, isTr
                 </div>
               ) : null}
               <h2 className="text-2xl font-bold text-gray-900">Escolha o plano ideal para você</h2>
-              <p className="text-gray-600 mt-1">Invista em você mesmo. Todos os planos incluem 7 dias de garantia.</p>
+              <p className="text-gray-600 mt-1">Invista em você mesmo e transforme seus hábitos.</p>
             </div>
             {onClose && !isTrialExpired && (
               <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">

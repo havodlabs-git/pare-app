@@ -103,7 +103,7 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
           Escolha o plano ideal para você
         </h2>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Invista em você mesmo. Todos os planos incluem 7 dias de garantia.
+          Invista em você mesmo e transforme seus hábitos.
         </p>
 
         {/* Billing Toggle */}
@@ -267,16 +267,9 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
         </Card>
 
         <Card className="p-6">
-          <h4 className="font-semibold mb-2">🎁 Tem garantia?</h4>
-          <p className="text-gray-600">
-            Sim! Oferecemos 7 dias de garantia incondicional. Se não gostar, devolvemos 100% do seu dinheiro.
-          </p>
-        </Card>
-
-        <Card className="p-6">
           <h4 className="font-semibold mb-2">📹 Como funcionam as sessões com psicólogos?</h4>
           <p className="text-gray-600">
-            No plano Elite, você pode agendar sessões de 50 minutos com psicólogos especializados via Zoom. 
+            No plano Elite, você pode agendar sessões de 50 minutos com psicólogos especializados por videochamada. 
             Escolha o profissional, horário e receba o link da videochamada automaticamente.
           </p>
         </Card>
@@ -303,12 +296,7 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
           </div>
           <span className="text-sm">SSL Certificado</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white">
-            💯
-          </div>
-          <span className="text-sm">7 Dias de Garantia</span>
-        </div>
+        
       </div>
     </div>
   );

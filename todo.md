@@ -30,4 +30,8 @@
 - [x] Endpoint /api/chat/conversations retornando erro 500 (índice Firestore criado)
 
 ## Alteração de Texto
-- [ ] Trocar "Pornografia e Masturbação" para "Pornografia"
+- [x] Trocar "Pornografia e Masturbação" para "Pornografia"
+
+## Alterações Planos e Videochamada
+- [ ] Remover garantia dos planos
+- [ ] Implementar Jitsi Meet para videochamadas (open source)
