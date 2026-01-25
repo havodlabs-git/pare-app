@@ -24,4 +24,10 @@
 - [x] Exibição de mensagens no portal do psicólogo
 
 ## Bug - Listagem de Psicólogos no Chat
-- [ ] Psicólogos não aparecem na lista para iniciar conversa
+- [x] Psicólogos não aparecem na lista para iniciar conversa
+
+## Bug - Erro 500 no Chat
+- [x] Endpoint /api/chat/conversations retornando erro 500 (índice Firestore criado)
+
+## Alteração de Texto
+- [ ] Trocar "Pornografia e Masturbação" para "Pornografia"

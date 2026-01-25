@@ -27,7 +27,7 @@ interface ModuleSelectorProps {
 const allModules: Module[] = [
   {
     id: "pornography",
-    name: "Pornografia e Masturbação",
+    name: "Pornografia",
     icon: <Eye className="w-6 h-6" />,
     color: "text-red-600",
     gradient: "from-red-500 to-pink-600",

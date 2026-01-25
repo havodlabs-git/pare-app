@@ -53,7 +53,7 @@ const USER_PROFILE_PREFIX = "pare_profile_";
 
 const moduleConfig = {
   pornography: {
-    name: "Pornografia e Masturbação",
+    name: "Pornografia",
     color: "from-red-500 to-pink-600",
   },
   social_media: {

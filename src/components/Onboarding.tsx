@@ -17,7 +17,7 @@ interface Module {
 const modules: Module[] = [
   {
     id: "pornography",
-    name: "Pornografia e Masturbação",
+    name: "Pornografia",
     icon: <Eye className="w-8 h-8" />,
     color: "text-red-600",
     gradient: "from-red-500 to-pink-600",
