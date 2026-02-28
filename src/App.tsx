@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 import { AuthScreen } from "./components/AuthScreen";
-import { Onboarding } from "./components/Onboarding";
 import { ModernDashboard } from "./components/ModernDashboard";
 import { Achievements } from "./components/Achievements";
 import { Stats } from "./components/Stats";
@@ -20,12 +19,21 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 
-interface User {
-  email: string;
-  name: string;
-  password: string;
-  createdAt: string;
-}
+// Novos componentes comportamentais
+import { OnboardingBehavioral, type BehavioralProfile } from "./components/OnboardingBehavioral";
+import { HabitSuggestions, type SuggestedHabit } from "./components/HabitSuggestions";
+import { WeeklyRoutineSetup, type ScheduledHabit, type Season } from "./components/WeeklyRoutineSetup";
+import {
+  SeasonDashboard,
+  type HabitLog,
+  type HabitStatus,
+  type Achievement,
+  calculatePoints,
+  ACHIEVEMENTS_DEFINITIONS,
+  getMaxCleanStreak,
+} from "./components/SeasonDashboard";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ModuleData {
   moduleId: string;
@@ -45,34 +53,51 @@ interface UserProfile {
   currentModuleId: string;
   plan: "free" | "premium" | "elite";
   planExpiresAt?: string;
+
+  // Dados comportamentais (novos)
+  behavioralProfile?: BehavioralProfile;
+  suggestedHabits?: SuggestedHabit[];
+  weeklySchedule?: ScheduledHabit[];
+  currentSeason?: Season;
+  habitLogs?: HabitLog[];
+  achievements?: Achievement[];
+
+  // Controle do fluxo de onboarding
+  onboardingStep?: "behavioral" | "habits" | "routine" | "done";
 }
 
-const USERS_KEY = "pare_users";
-const CURRENT_USER_KEY = "pare_current_user";
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 const USER_PROFILE_PREFIX = "pare_profile_";
 
 const moduleConfig = {
-  pornography: {
-    name: "Pornografia",
-    color: "from-red-500 to-pink-600",
-  },
-  social_media: {
-    name: "Redes Sociais",
-    color: "from-blue-500 to-cyan-600",
-  },
-  smoking: {
-    name: "Cigarro",
-    color: "from-gray-500 to-slate-600",
-  },
-  alcohol: {
-    name: "Álcool",
-    color: "from-amber-500 to-orange-600",
-  },
-  shopping: {
-    name: "Compras Compulsivas",
-    color: "from-green-500 to-emerald-600",
-  },
+  pornography: { name: "Pornografia", color: "from-red-500 to-pink-600" },
+  social_media: { name: "Redes Sociais", color: "from-blue-500 to-cyan-600" },
+  smoking: { name: "Cigarro", color: "from-gray-500 to-slate-600" },
+  alcohol: { name: "Álcool", color: "from-amber-500 to-orange-600" },
+  shopping: { name: "Compras Compulsivas", color: "from-green-500 to-emerald-600" },
 };
+
+// ─── Helpers de Conquistas ────────────────────────────────────────────────────
+
+function checkAchievements(logs: HabitLog[], prevAchievements: Achievement[]): Achievement[] {
+  const cleanStreak = getMaxCleanStreak(logs);
+  const totalDone = logs.filter((l) => l.status === "done").length;
+
+  return prevAchievements.map((a) => {
+    if (a.unlocked) return a;
+
+    let unlocked = false;
+    if (a.id === "seven_days" && cleanStreak >= 7) unlocked = true;
+    if (a.id === "first_week" && cleanStreak >= 7) unlocked = true;
+    if (a.id === "thirty_days" && cleanStreak >= 30) unlocked = true;
+    if (a.id === "perfect_week" && totalDone >= 7) unlocked = true;
+
+    return unlocked ? { ...a, unlocked: true, unlockedAt: new Date().toISOString() } : a;
+  });
+}
+
+// ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function App() {
   const { user, isAuthenticated, logout: authLogout, loading } = useAuth();
@@ -82,9 +107,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     if (currentUser) {
       const saved = localStorage.getItem(`${USER_PROFILE_PREFIX}${currentUser.email}`);
-      if (saved) {
-        return JSON.parse(saved);
-      }
+      if (saved) return JSON.parse(saved);
     }
     return null;
   });
@@ -93,7 +116,7 @@ export default function App() {
   const [showRelapseDialog, setShowRelapseDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  // Load user profile when current user changes
+  // Carregar perfil quando o utilizador muda
   useEffect(() => {
     if (currentUser) {
       const saved = localStorage.getItem(`${USER_PROFILE_PREFIX}${currentUser.email}`);
@@ -107,122 +130,58 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Auto-increment day count for current module
+  // Auto-incremento de dias (compatibilidade com módulos legados)
   useEffect(() => {
     if (!userProfile || !currentUser) return;
-
-    const currentModule = userProfile.modules.find(m => m.moduleId === userProfile.currentModuleId);
+    const currentModule = userProfile.modules?.find((m) => m.moduleId === userProfile.currentModuleId);
     if (!currentModule) return;
 
     const checkNewDay = () => {
       const lastCheck = new Date(currentModule.lastCheckIn);
       const now = new Date();
-      
-      // Check if it's a new day
       if (lastCheck.toDateString() !== now.toDateString()) {
         const daysPassed = Math.floor((now.getTime() - lastCheck.getTime()) / (1000 * 60 * 60 * 24));
-        
         if (daysPassed > 0) {
-          const newDayCount = currentModule.dayCount + daysPassed;
-          const newPoints = currentModule.points + (daysPassed * 10);
-          const newLevel = Math.floor(newPoints / 100) + 1;
-          const newCurrentStreak = currentModule.currentStreak + daysPassed;
-          const newLongestStreak = Math.max(currentModule.longestStreak, newCurrentStreak);
-
           const updatedModule = {
             ...currentModule,
-            dayCount: newDayCount,
-            points: newPoints,
-            level: newLevel,
-            currentStreak: newCurrentStreak,
-            longestStreak: newLongestStreak,
+            dayCount: currentModule.dayCount + daysPassed,
+            points: currentModule.points + daysPassed * 10,
+            level: Math.floor((currentModule.points + daysPassed * 10) / 100) + 1,
+            currentStreak: currentModule.currentStreak + daysPassed,
+            longestStreak: Math.max(currentModule.longestStreak, currentModule.currentStreak + daysPassed),
             lastCheckIn: now.toISOString(),
           };
-
           const updatedProfile = {
             ...userProfile,
-            modules: userProfile.modules.map(m => 
+            modules: userProfile.modules.map((m) =>
               m.moduleId === userProfile.currentModuleId ? updatedModule : m
             ),
           };
-
           setUserProfile(updatedProfile);
           localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(updatedProfile));
-          
-          toast.success(`🎉 Parabéns! Você completou ${daysPassed} ${daysPassed === 1 ? 'dia' : 'dias'}!`, {
-            description: `Continue firme! Você ganhou ${daysPassed * 10} pontos.`,
-          });
         }
       }
     };
 
     checkNewDay();
     const interval = setInterval(checkNewDay, 60000);
-
     return () => clearInterval(interval);
-  }, [userProfile, currentUser]);
+  }, [userProfile?.currentModuleId, currentUser]);
 
-  // Save to localStorage whenever userProfile changes
+  // Persistir perfil
   useEffect(() => {
     if (userProfile && currentUser) {
       localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(userProfile));
     }
   }, [userProfile, currentUser]);
 
-  const handleLogin = (email: string, password: string) => {
-    const usersData = localStorage.getItem(USERS_KEY);
-    const users: User[] = usersData ? JSON.parse(usersData) : [];
+  // ── Handlers de Onboarding Comportamental ─────────────────────────────────
 
-    const user = users.find(u => u.email === email && u.password === password);
-
-    if (user) {
-      const userWithoutPassword = { email: user.email, name: user.name, createdAt: user.createdAt };
-      setCurrentUser(userWithoutPassword as User);
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithoutPassword));
-      toast.success(`Bem-vindo de volta, ${user.name}!`);
-    } else {
-      toast.error("E-mail ou senha incorretos");
-    }
-  };
-
-  const handleRegister = (email: string, password: string, name: string) => {
-    const usersData = localStorage.getItem(USERS_KEY);
-    const users: User[] = usersData ? JSON.parse(usersData) : [];
-
-    // Check if user already exists
-    if (users.find(u => u.email === email)) {
-      toast.error("Este e-mail já está cadastrado");
-      return;
-    }
-
-    const newUser: User = {
-      email,
-      password,
-      name,
-      createdAt: new Date().toISOString(),
-    };
-
-    users.push(newUser);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-
-    const userWithoutPassword = { email: newUser.email, name: newUser.name, createdAt: newUser.createdAt };
-    setCurrentUser(userWithoutPassword as User);
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithoutPassword));
-    
-    toast.success(`Bem-vindo, ${name}! Sua conta foi criada com sucesso.`);
-  };
-
-  const handleLogout = () => {
-    authLogout();
-    setUserProfile(null);
-    toast.info("Você saiu da sua conta");
-  };
-
-  const handleFirstModuleSelection = (moduleId: string) => {
+  const handleBehavioralComplete = (profile: BehavioralProfile, primaryModuleId: string) => {
     if (!currentUser) return;
 
     const newModule: ModuleData = {
-      moduleId,
+      moduleId: primaryModuleId,
       startDate: new Date().toISOString(),
       dayCount: 0,
       level: 1,
@@ -236,25 +195,107 @@ export default function App() {
 
     const newProfile: UserProfile = {
       modules: [newModule],
-      currentModuleId: moduleId,
+      currentModuleId: primaryModuleId,
       plan: "free",
+      behavioralProfile: profile,
+      onboardingStep: "habits",
+      achievements: ACHIEVEMENTS_DEFINITIONS.map((a) => ({ ...a })),
+      habitLogs: [],
     };
 
     setUserProfile(newProfile);
     localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(newProfile));
-    toast.success(`Sua jornada começou! Vamos transformar seus hábitos juntos.`);
+  };
+
+  const handleHabitsComplete = (habits: SuggestedHabit[]) => {
+    if (!userProfile || !currentUser) return;
+    const updated: UserProfile = {
+      ...userProfile,
+      suggestedHabits: habits,
+      onboardingStep: "routine",
+    };
+    setUserProfile(updated);
+    localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(updated));
+  };
+
+  const handleRoutineComplete = (schedule: ScheduledHabit[], season: Season) => {
+    if (!userProfile || !currentUser) return;
+    const updated: UserProfile = {
+      ...userProfile,
+      weeklySchedule: schedule,
+      currentSeason: season,
+      onboardingStep: "done",
+    };
+    setUserProfile(updated);
+    localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(updated));
+    toast.success("🎉 Sua jornada começa agora! Boa sorte na sua temporada!");
+  };
+
+  // ── Handlers de Hábitos Diários ───────────────────────────────────────────
+
+  const handleLogHabit = (habitId: string, status: HabitStatus) => {
+    if (!userProfile || !currentUser) return;
+
+    const today = new Date().toISOString().split("T")[0];
+    const existingLog = (userProfile.habitLogs || []).find(
+      (l) => l.habitId === habitId && l.date.split("T")[0] === today
+    );
+    if (existingLog) return; // já registrado hoje
+
+    const habitName =
+      userProfile.weeklySchedule?.find((h) => h.habitId === habitId)?.habitName || habitId;
+
+    const newLog: HabitLog = {
+      id: `log_${Date.now()}`,
+      habitId,
+      habitName,
+      date: new Date().toISOString(),
+      status,
+    };
+
+    const newLogs = [...(userProfile.habitLogs || []), newLog];
+    const newAchievements = checkAchievements(newLogs, userProfile.achievements || ACHIEVEMENTS_DEFINITIONS);
+
+    // Verificar conquistas novas
+    const newlyUnlocked = newAchievements.filter(
+      (a, i) => a.unlocked && !(userProfile.achievements || [])[i]?.unlocked
+    );
+    newlyUnlocked.forEach((a) => {
+      toast.success(`🏆 Conquista desbloqueada: ${a.name}!`);
+    });
+
+    const updated: UserProfile = {
+      ...userProfile,
+      habitLogs: newLogs,
+      achievements: newAchievements,
+    };
+
+    setUserProfile(updated);
+
+    if (status === "done") toast.success("+10 pontos! Hábito concluído! 💪");
+    else if (status === "skipped") toast.info("Hábito pulado. Amanhã é um novo dia.");
+  };
+
+  const handleRegisterRelapse = (habitId: string) => {
+    handleLogHabit(habitId, "relapse");
+    toast.info("Recaída registrada. Reconhecer é o primeiro passo. Continue!");
+  };
+
+  // ── Handlers Legados ──────────────────────────────────────────────────────
+
+  const handleLogout = () => {
+    authLogout();
+    setUserProfile(null);
+    toast.info("Você saiu da sua conta");
   };
 
   const handleAddModule = (moduleId: string) => {
     if (!userProfile || !currentUser) return;
-
     const maxModules = userProfile.plan === "free" ? 1 : userProfile.plan === "premium" ? 3 : 999;
-    
     if (userProfile.modules.length >= maxModules) {
       toast.error("Você atingiu o limite de módulos do seu plano");
       return;
     }
-
     const newModule: ModuleData = {
       moduleId,
       startDate: new Date().toISOString(),
@@ -267,62 +308,45 @@ export default function App() {
       lastCheckIn: new Date().toISOString(),
       relapseHistory: [],
     };
-
     const updatedProfile = {
       ...userProfile,
       modules: [...userProfile.modules, newModule],
-      currentModuleId: moduleId, // Switch to new module
+      currentModuleId: moduleId,
     };
-
     setUserProfile(updatedProfile);
-    toast.success(`Módulo "${moduleConfig[moduleId as keyof typeof moduleConfig].name}" adicionado!`);
+    toast.success(`Módulo "${moduleConfig[moduleId as keyof typeof moduleConfig]?.name}" adicionado!`);
   };
 
   const handleSwitchModule = (moduleId: string) => {
     if (!userProfile) return;
-
-    const updatedProfile = {
-      ...userProfile,
-      currentModuleId: moduleId,
-    };
-
-    setUserProfile(updatedProfile);
-    toast.success(`Agora acompanhando: ${moduleConfig[moduleId as keyof typeof moduleConfig].name}`);
+    setUserProfile({ ...userProfile, currentModuleId: moduleId });
+    toast.success(`Agora acompanhando: ${moduleConfig[moduleId as keyof typeof moduleConfig]?.name}`);
   };
 
   const handleSelectPlan = (plan: "free" | "premium" | "elite") => {
     if (!userProfile) return;
-
     const updatedProfile = {
       ...userProfile,
       plan,
-      planExpiresAt: plan !== "free" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+      planExpiresAt:
+        plan !== "free"
+          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          : undefined,
     };
-
     setUserProfile(updatedProfile);
-    
     if (plan === "free") {
       toast.info("Plano alterado para Gratuito");
     } else {
-      toast.success(`🎉 Bem-vindo ao plano ${plan === "premium" ? "Premium" : "Elite"}!`, {
-        description: "Aproveite todos os recursos desbloqueados!",
-      });
+      toast.success(`🎉 Bem-vindo ao plano ${plan === "premium" ? "Premium" : "Elite"}!`);
     }
-    
     setActiveTab("dashboard");
   };
 
   const handleRelapse = () => {
     if (!userProfile || !currentUser) return;
-
-    const currentModule = userProfile.modules.find(m => m.moduleId === userProfile.currentModuleId);
+    const currentModule = userProfile.modules.find((m) => m.moduleId === userProfile.currentModuleId);
     if (!currentModule) return;
-
-    const newRelapse = {
-      date: new Date().toISOString(),
-      daysSinceLast: currentModule.currentStreak,
-    };
-
+    const newRelapse = { date: new Date().toISOString(), daysSinceLast: currentModule.currentStreak };
     const updatedModule = {
       ...currentModule,
       currentStreak: 0,
@@ -331,35 +355,27 @@ export default function App() {
       relapseHistory: [...currentModule.relapseHistory, newRelapse],
       lastCheckIn: new Date().toISOString(),
     };
-
     const updatedProfile = {
       ...userProfile,
-      modules: userProfile.modules.map(m => 
+      modules: userProfile.modules.map((m) =>
         m.moduleId === userProfile.currentModuleId ? updatedModule : m
       ),
     };
-
     setUserProfile(updatedProfile);
     setShowRelapseDialog(false);
-    
-    toast.info("Recomeço registrado", {
-      description: "Não desista! Cada dia é uma nova oportunidade de crescer.",
-    });
+    toast.info("Recomeço registrado. Não desista!");
   };
 
   const handleReset = () => {
     if (!currentUser) return;
-
     setUserProfile(null);
     localStorage.removeItem(`${USER_PROFILE_PREFIX}${currentUser.email}`);
     setShowResetDialog(false);
-    
-    toast.success("Progresso resetado", {
-      description: "Começando uma nova jornada!",
-    });
+    toast.success("Progresso resetado. Começando uma nova jornada!");
   };
 
-  // Show auth screen if no user is logged in
+  // ── Loading ───────────────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -375,30 +391,73 @@ export default function App() {
     return <AuthScreen />;
   }
 
-  // Show onboarding if user has no profile (first time or after reset)
-  if (!userProfile || userProfile.modules.length === 0) {
-    return <Onboarding onComplete={handleFirstModuleSelection} />;
+  // ── Fluxo de Onboarding Comportamental ────────────────────────────────────
+
+  // Sem perfil ou onboarding não iniciado → Onboarding Comportamental (8 etapas)
+  if (!userProfile || !userProfile.onboardingStep) {
+    return (
+      <OnboardingBehavioral
+        onComplete={handleBehavioralComplete}
+      />
+    );
   }
 
-  const currentModule = userProfile.modules.find(m => m.moduleId === userProfile.currentModuleId);
+  // Etapa de sugestão de hábitos
+  if (userProfile.onboardingStep === "habits" && userProfile.behavioralProfile) {
+    return (
+      <HabitSuggestions
+        profile={userProfile.behavioralProfile}
+        onComplete={handleHabitsComplete}
+      />
+    );
+  }
+
+  // Etapa de criação da rotina semanal
+  if (
+    userProfile.onboardingStep === "routine" &&
+    userProfile.suggestedHabits &&
+    userProfile.suggestedHabits.length > 0
+  ) {
+    return (
+      <WeeklyRoutineSetup
+        habits={userProfile.suggestedHabits}
+        onComplete={handleRoutineComplete}
+      />
+    );
+  }
+
+  // ── Dashboard Principal ───────────────────────────────────────────────────
+
+  const currentModule = userProfile.modules?.find((m) => m.moduleId === userProfile.currentModuleId);
   if (!currentModule) return null;
 
-  const config = moduleConfig[currentModule.moduleId as keyof typeof moduleConfig];
+  const config = moduleConfig[currentModule.moduleId as keyof typeof moduleConfig] || {
+    name: "Hábito",
+    color: "from-purple-500 to-pink-600",
+  };
   const maxModules = userProfile.plan === "free" ? 1 : userProfile.plan === "premium" ? 3 : 999;
+
+  // Calcular pontos comportamentais
+  const behavioralPoints = calculatePoints(userProfile.habitLogs || []);
+
+  // Se tem temporada ativa e está no modo "done", mostrar o SeasonDashboard
+  // como aba integrada no dashboard principal
+  const hasSeason =
+    userProfile.onboardingStep === "done" &&
+    userProfile.currentSeason &&
+    userProfile.behavioralProfile;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <LogoWithText size="sm" />
 
-            {/* Module Selector */}
             <div className="flex-1 flex justify-center">
               <ModuleSelector
-                activeModules={userProfile.modules.map(m => m.moduleId)}
+                activeModules={userProfile.modules.map((m) => m.moduleId)}
                 currentModuleId={userProfile.currentModuleId}
                 maxModules={maxModules}
                 currentPlan={userProfile.plan}
@@ -409,39 +468,49 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Plan Badge */}
               {userProfile.plan !== "free" && (
-                <Badge className={`hidden md:flex ${
-                  userProfile.plan === "premium" 
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500" 
-                    : "bg-gradient-to-r from-amber-500 to-orange-500"
-                } text-white border-0`}>
+                <Badge
+                  className={`hidden md:flex ${
+                    userProfile.plan === "premium"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                      : "bg-gradient-to-r from-amber-500 to-orange-500"
+                  } text-white border-0`}
+                >
                   {userProfile.plan === "premium" ? "⚡ Premium" : "👑 Elite"}
                 </Badge>
               )}
 
-              {/* Stats */}
               <div className="text-right hidden lg:block">
-                <p className="text-xs text-gray-500">Nível {currentModule.level} • {currentModule.points} pts</p>
+                <p className="text-xs text-gray-500">
+                  Nível {behavioralPoints.currentLevel} — {behavioralPoints.levelName} •{" "}
+                  {behavioralPoints.totalPoints} pts
+                </p>
               </div>
-              
-              {/* User Menu */}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-2">
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {currentUser.name.charAt(0).toUpperCase()}
+                      {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
-                    <span className="hidden md:inline">{currentUser.name}</span>
+                    <span className="hidden md:inline">{currentUser?.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <div>
-                      <p className="font-medium">{currentUser.name}</p>
-                      <p className="text-xs text-gray-500 font-normal">{currentUser.email}</p>
+                      <p className="font-medium">{currentUser?.name}</p>
+                      <p className="text-xs text-gray-500 font-normal">{currentUser?.email}</p>
                     </div>
                   </DropdownMenuLabel>
+                  {userProfile.behavioralProfile && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs font-normal text-gray-500">
+                        Perfil: {userProfile.behavioralProfile.behaviorProfile}
+                      </DropdownMenuLabel>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
                     <User className="w-4 h-4 mr-2" />
@@ -452,6 +521,10 @@ export default function App() {
                     Planos e Assinatura
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowResetDialog(true)} className="text-orange-600">
+                    <Award className="w-4 h-4 mr-2" />
+                    Reiniciar jornada
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                     <LogOut className="w-4 h-4 mr-2" />
                     Sair
@@ -466,10 +539,8 @@ export default function App() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="space-y-6">
-          {/* Motivational Quote */}
           {activeTab !== "pricing" && <MotivationalQuotes />}
 
-          {/* Tabs Navigation */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-7 mb-6 h-12">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
@@ -502,20 +573,36 @@ export default function App() {
               </TabsTrigger>
             </TabsList>
 
+            {/* ── Início ─────────────────────────────────────────────────────── */}
             <TabsContent value="dashboard">
-              <ModernDashboard
-                dayCount={currentModule.dayCount}
-                level={currentModule.level}
-                points={currentModule.points}
-                longestStreak={currentModule.longestStreak}
-                currentStreak={currentModule.currentStreak}
-                moduleName={config.name}
-                moduleColor={config.color}
-                onReset={() => setShowResetDialog(true)}
-                onRelapse={() => setShowRelapseDialog(true)}
-              />
+              {hasSeason ? (
+                <SeasonDashboard
+                  season={userProfile.currentSeason!}
+                  profile={userProfile.behavioralProfile!}
+                  logs={userProfile.habitLogs || []}
+                  points={behavioralPoints}
+                  achievements={userProfile.achievements || ACHIEVEMENTS_DEFINITIONS}
+                  onLogHabit={handleLogHabit}
+                  onRegisterRelapse={handleRegisterRelapse}
+                  onViewForum={() => setActiveTab("forum")}
+                  onViewStats={() => setActiveTab("stats")}
+                />
+              ) : (
+                <ModernDashboard
+                  dayCount={currentModule.dayCount}
+                  level={currentModule.level}
+                  points={currentModule.points}
+                  longestStreak={currentModule.longestStreak}
+                  currentStreak={currentModule.currentStreak}
+                  moduleName={config.name}
+                  moduleColor={config.color}
+                  onReset={() => setShowResetDialog(true)}
+                  onRelapse={() => setShowRelapseDialog(true)}
+                />
+              )}
             </TabsContent>
 
+            {/* ── Conquistas ──────────────────────────────────────────────────── */}
             <TabsContent value="achievements">
               <Achievements
                 dayCount={currentModule.dayCount}
@@ -523,6 +610,7 @@ export default function App() {
               />
             </TabsContent>
 
+            {/* ── Stats ───────────────────────────────────────────────────────── */}
             <TabsContent value="stats">
               <Stats
                 dayCount={currentModule.dayCount}
@@ -534,10 +622,12 @@ export default function App() {
               />
             </TabsContent>
 
+            {/* ── Fórum ───────────────────────────────────────────────────────── */}
             <TabsContent value="forum">
               <Forum />
             </TabsContent>
 
+            {/* ── Sessões ─────────────────────────────────────────────────────── */}
             <TabsContent value="sessions">
               <Appointments
                 userPlan={userProfile.plan}
@@ -545,6 +635,7 @@ export default function App() {
               />
             </TabsContent>
 
+            {/* ── Chat ────────────────────────────────────────────────────────── */}
             <TabsContent value="chat">
               <Chat
                 userPlan={userProfile.plan}
@@ -552,6 +643,7 @@ export default function App() {
               />
             </TabsContent>
 
+            {/* ── Planos ──────────────────────────────────────────────────────── */}
             <TabsContent value="pricing">
               <PricingPlans
                 currentPlan={userProfile.plan}
@@ -566,28 +658,27 @@ export default function App() {
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Resetar todo o progresso?</AlertDialogTitle>
+            <AlertDialogTitle>Reiniciar toda a jornada?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá apagar todos os seus dados de TODOS os módulos, incluindo dias, conquistas, e histórico.
-              Você será redirecionado para o onboarding novamente. Tem certeza que deseja continuar?
+              Esta ação irá apagar todos os seus dados, incluindo perfil comportamental, hábitos,
+              rotina, temporada e histórico. Você passará pelo onboarding novamente. Tem certeza?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReset}>Resetar</AlertDialogAction>
+            <AlertDialogAction onClick={handleReset}>Reiniciar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Relapse Dialog */}
+      {/* Relapse Dialog (legado) */}
       <AlertDialog open={showRelapseDialog} onOpenChange={setShowRelapseDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Registrar recaída?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isto irá resetar seu contador de dias e sequência atual do módulo "{config.name}", mas seu histórico e
-              conquistas já desbloqueadas serão mantidos. Seus outros módulos não serão afetados. Lembre-se: recaídas fazem parte do
-              processo de crescimento. O importante é não desistir!
+              Isto irá resetar seu contador de dias e sequência atual do módulo "{config.name}".
+              Recaídas fazem parte do processo de crescimento. O importante é não desistir!
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
