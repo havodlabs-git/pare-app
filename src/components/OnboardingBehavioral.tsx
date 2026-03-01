@@ -1,50 +1,32 @@
 import { useState } from "react";
-import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Logo } from "./Logo";
-import { Progress } from "./ui/progress";
 import {
   Check, ChevronRight, ChevronLeft, Shield, User, Target,
   Zap, Heart, Lightbulb, Clock, Star, Eye, Smartphone,
-  Cigarette, Wine, ShoppingCart, Utensils, Hand
+  Cigarette, Wine, ShoppingCart, Utensils, Hand, Lock,
+  ArrowRight, Sparkles
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface BehavioralProfile {
-  // Etapa 1 – LGPD
   lgpdAccepted: boolean;
   lgpdAcceptedAt: string;
-
-  // Etapa 2 – Identificação
   nickname: string;
   age: string;
   city: string;
-
-  // Etapa 3 – Desafio principal
   addictions: string[];
   primaryAddiction: string;
-
-  // Etapa 4 – Intensidade
   intensityMap: Record<string, number>;
-
-  // Etapa 5 – Gatilhos emocionais
   triggers: string[];
   postEmotions: string[];
-
-  // Etapa 6 – Interesses
   interests: string[];
-
-  // Etapa 7 – Disponibilidade
   daysPerWeek: number;
   minutesPerDay: number;
   preferredPeriod: string;
-
-  // Etapa 8 – Visão de futuro
   futureVision: string;
-
-  // Calculados após onboarding
   behaviorProfile: string;
   riskScore: number;
 }
@@ -56,58 +38,108 @@ interface OnboardingBehavioralProps {
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 const ADDICTIONS = [
-  { id: "pornography", label: "Pornografia", icon: <Eye className="w-5 h-5" /> },
-  { id: "compulsive_masturbation", label: "Masturbação compulsiva", icon: <Hand className="w-5 h-5" /> },
-  { id: "alcohol", label: "Álcool", icon: <Wine className="w-5 h-5" /> },
-  { id: "smoking", label: "Tabagismo", icon: <Cigarette className="w-5 h-5" /> },
-  { id: "social_media", label: "Redes sociais", icon: <Smartphone className="w-5 h-5" /> },
-  { id: "compulsive_eating", label: "Alimentação compulsiva", icon: <Utensils className="w-5 h-5" /> },
-  { id: "shopping", label: "Compras compulsivas", icon: <ShoppingCart className="w-5 h-5" /> },
+  { id: "pornography",            label: "Pornografia",             icon: Eye,          emoji: "🔞" },
+  { id: "compulsive_masturbation",label: "Masturbação compulsiva",  icon: Hand,         emoji: "🚫" },
+  { id: "alcohol",                label: "Álcool",                  icon: Wine,         emoji: "🍷" },
+  { id: "smoking",                label: "Tabagismo",               icon: Cigarette,    emoji: "🚬" },
+  { id: "social_media",           label: "Redes sociais",           icon: Smartphone,   emoji: "📱" },
+  { id: "compulsive_eating",      label: "Alimentação compulsiva",  icon: Utensils,     emoji: "🍔" },
+  { id: "shopping",               label: "Compras compulsivas",     icon: ShoppingCart, emoji: "🛒" },
 ];
 
-const INTENSITY_LABELS: Record<number, string> = {
-  1: "Raramente",
-  2: "Algumas vezes por semana",
-  3: "Diariamente",
-  4: "Mais de uma vez ao dia",
-  5: "Fora de controle",
+const INTENSITY_LABELS: Record<number, { label: string; color: string }> = {
+  1: { label: "Raramente",                color: "text-emerald-400" },
+  2: { label: "Algumas vezes por semana", color: "text-yellow-400"  },
+  3: { label: "Diariamente",              color: "text-orange-400"  },
+  4: { label: "Mais de uma vez ao dia",   color: "text-red-400"     },
+  5: { label: "Fora de controle",         color: "text-red-500"     },
 };
 
 const TRIGGERS = [
-  "Quando estou estressado",
-  "Quando me sinto sozinho",
-  "À noite",
-  "Após o trabalho",
-  "Quando estou ansioso",
-  "Quando estou entediado",
+  { label: "Quando estou estressado",  emoji: "😤" },
+  { label: "Quando me sinto sozinho",  emoji: "😔" },
+  { label: "À noite",                  emoji: "🌙" },
+  { label: "Após o trabalho",          emoji: "💼" },
+  { label: "Quando estou ansioso",     emoji: "😰" },
+  { label: "Quando estou entediado",   emoji: "😑" },
 ];
 
 const POST_EMOTIONS = [
-  "Culpa",
-  "Tristeza",
-  "Frustração",
-  "Indiferença",
-  "Vergonha",
+  { label: "Culpa",       emoji: "😞" },
+  { label: "Tristeza",    emoji: "😢" },
+  { label: "Frustração",  emoji: "😤" },
+  { label: "Indiferença", emoji: "😶" },
+  { label: "Vergonha",    emoji: "🫣" },
 ];
 
 const INTERESTS = [
-  "Lutas",
-  "Academia",
-  "Bicicleta",
-  "Leitura",
-  "Música",
-  "Esportes",
-  "Espiritualidade",
-  "Tecnologia",
-  "Artes",
+  { label: "Lutas",          emoji: "🥊" },
+  { label: "Academia",       emoji: "💪" },
+  { label: "Bicicleta",      emoji: "🚴" },
+  { label: "Leitura",        emoji: "📚" },
+  { label: "Música",         emoji: "🎵" },
+  { label: "Esportes",       emoji: "⚽" },
+  { label: "Espiritualidade",emoji: "🧘" },
+  { label: "Tecnologia",     emoji: "💻" },
+  { label: "Artes",          emoji: "🎨" },
 ];
 
-const MINUTES_OPTIONS = [15, 30, 45, 60];
+const STEP_CONFIG = [
+  { title: "Privacidade",     subtitle: "Seus dados são protegidos",          icon: Shield,    gradient: "from-violet-600 to-purple-700"  },
+  { title: "Conexão",         subtitle: "Vamos nos conhecer",                 icon: User,      gradient: "from-blue-600 to-cyan-600"       },
+  { title: "Desafio",         subtitle: "O que você quer transformar",        icon: Target,    gradient: "from-rose-600 to-pink-600"       },
+  { title: "Intensidade",     subtitle: "Com que frequência acontece",        icon: Zap,       gradient: "from-orange-500 to-red-600"      },
+  { title: "Gatilhos",        subtitle: "Quando isso costuma acontecer",      icon: Heart,     gradient: "from-pink-600 to-rose-600"       },
+  { title: "Interesses",      subtitle: "O que te fortalece",                 icon: Lightbulb, gradient: "from-emerald-600 to-teal-600"    },
+  { title: "Disponibilidade", subtitle: "Sua rotina real",                    icon: Clock,     gradient: "from-cyan-600 to-blue-600"       },
+  { title: "Visão de Futuro", subtitle: "Como será sua vida em 6 meses",      icon: Star,      gradient: "from-amber-500 to-orange-600"    },
+];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const toggle = (arr: string[], val: string): string[] =>
   arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+function SelectChip({
+  selected,
+  onClick,
+  children,
+  color = "purple",
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  color?: string;
+}) {
+  const colors: Record<string, string> = {
+    purple:  "border-purple-500 bg-purple-500/20 text-white shadow-purple-500/20",
+    pink:    "border-pink-500 bg-pink-500/20 text-white shadow-pink-500/20",
+    amber:   "border-amber-500 bg-amber-500/20 text-white shadow-amber-500/20",
+    emerald: "border-emerald-500 bg-emerald-500/20 text-white shadow-emerald-500/20",
+    cyan:    "border-cyan-500 bg-cyan-500/20 text-white shadow-cyan-500/20",
+    rose:    "border-rose-500 bg-rose-500/20 text-white shadow-rose-500/20",
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`relative flex items-center gap-2.5 px-4 py-3 rounded-2xl border-2 text-left transition-all duration-200 w-full group ${
+        selected
+          ? `${colors[color]} shadow-lg`
+          : "border-white/10 bg-white/5 text-gray-400 hover:border-white/25 hover:bg-white/10 hover:text-gray-200"
+      }`}
+    >
+      {children}
+      {selected && (
+        <span className="ml-auto flex-shrink-0">
+          <Check className="w-4 h-4 text-current" />
+        </span>
+      )}
+    </button>
+  );
+}
 
 // ─── Componente Principal ────────────────────────────────────────────────────
 
@@ -115,40 +147,25 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
   const TOTAL_STEPS = 8;
   const [step, setStep] = useState(1);
 
-  // Etapa 1
   const [lgpdAccepted, setLgpdAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
-
-  // Etapa 2
   const [nickname, setNickname] = useState("");
   const [age, setAge] = useState("");
   const [city, setCity] = useState("");
-
-  // Etapa 3
   const [addictions, setAddictions] = useState<string[]>([]);
   const [primaryAddiction, setPrimaryAddiction] = useState("");
-
-  // Etapa 4
   const [intensityMap, setIntensityMap] = useState<Record<string, number>>({});
-
-  // Etapa 5
   const [triggers, setTriggers] = useState<string[]>([]);
   const [postEmotions, setPostEmotions] = useState<string[]>([]);
-
-  // Etapa 6
   const [interests, setInterests] = useState<string[]>([]);
-
-  // Etapa 7
   const [daysPerWeek, setDaysPerWeek] = useState(3);
   const [minutesPerDay, setMinutesPerDay] = useState(30);
   const [preferredPeriod, setPreferredPeriod] = useState("");
-
-  // Etapa 8
   const [futureVision, setFutureVision] = useState("");
 
   const progress = ((step - 1) / TOTAL_STEPS) * 100;
-
-  // ── Navegação ──────────────────────────────────────────────────────────────
+  const cfg = STEP_CONFIG[step - 1];
+  const StepIcon = cfg.icon;
 
   const canAdvance = (): boolean => {
     switch (step) {
@@ -164,23 +181,11 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
     }
   };
 
-  const handleNext = () => {
-    if (step < TOTAL_STEPS) {
-      setStep((s) => s + 1);
-    } else {
-      handleComplete();
-    }
-  };
+  const handleNext = () => step < TOTAL_STEPS ? setStep((s) => s + 1) : handleComplete();
+  const handleBack = () => step > 1 && setStep((s) => s - 1);
 
-  const handleBack = () => {
-    if (step > 1) setStep((s) => s - 1);
-  };
-
-  // ── Classificação de perfil ────────────────────────────────────────────────
-
-  const classifyProfile = (): { profile: string; riskScore: number } => {
+  const classifyProfile = () => {
     const primaryIntensity = intensityMap[primaryAddiction] || 1;
-
     let riskScore = primaryIntensity * 20;
     if (triggers.some((t) => t.toLowerCase().includes("ansios"))) riskScore += 10;
     if (triggers.some((t) => t.toLowerCase().includes("noite"))) riskScore += 5;
@@ -197,122 +202,105 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
     } else if (triggers.some((t) => t.toLowerCase().includes("sozinho"))) {
       profile = "Impulsivo Emocional";
     }
-
     return { profile, riskScore };
   };
 
   const handleComplete = () => {
     const { profile, riskScore } = classifyProfile();
-
-    // Mapear addiction para moduleId compatível com o sistema existente
     const moduleIdMap: Record<string, string> = {
-      pornography: "pornography",
-      compulsive_masturbation: "pornography",
-      alcohol: "alcohol",
-      smoking: "smoking",
-      social_media: "social_media",
-      compulsive_eating: "shopping",
-      shopping: "shopping",
+      pornography: "pornography", compulsive_masturbation: "pornography",
+      alcohol: "alcohol", smoking: "smoking", social_media: "social_media",
+      compulsive_eating: "shopping", shopping: "shopping",
     };
-
     const behavioralProfile: BehavioralProfile = {
-      lgpdAccepted: true,
-      lgpdAcceptedAt: new Date().toISOString(),
-      nickname,
-      age,
-      city,
-      addictions,
-      primaryAddiction,
-      intensityMap,
-      triggers,
-      postEmotions,
-      interests,
-      daysPerWeek,
-      minutesPerDay,
-      preferredPeriod,
-      futureVision,
-      behaviorProfile: profile,
-      riskScore,
+      lgpdAccepted: true, lgpdAcceptedAt: new Date().toISOString(),
+      nickname, age, city, addictions, primaryAddiction, intensityMap,
+      triggers, postEmotions, interests, daysPerWeek, minutesPerDay,
+      preferredPeriod, futureVision, behaviorProfile: profile, riskScore,
     };
-
-    const primaryModuleId = moduleIdMap[primaryAddiction] || "pornography";
-    onComplete(behavioralProfile, primaryModuleId);
+    onComplete(behavioralProfile, moduleIdMap[primaryAddiction] || "pornography");
   };
 
   // ── Render de cada etapa ───────────────────────────────────────────────────
 
   const renderStep = () => {
     switch (step) {
-      // ── Etapa 1: LGPD ──────────────────────────────────────────────────────
+
+      // ── Etapa 1: LGPD ─────────────────────────────────────────────────────
       case 1:
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <Shield className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white">Você está prestes a iniciar uma nova fase da sua vida.</h2>
-              <p className="text-gray-300 text-base leading-relaxed">
-                Este é um ambiente seguro e confidencial. Para personalizarmos sua jornada,
-                precisamos tratar alguns dados comportamentais.
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Este é um ambiente <span className="text-white font-semibold">seguro e confidencial</span>. Para
+                personalizarmos sua jornada, precisamos tratar alguns dados comportamentais com base na{" "}
+                <span className="text-purple-300 font-medium">LGPD (Lei nº 13.709/2018)</span>.
               </p>
+
+              <div className="grid grid-cols-3 gap-2 py-2">
+                {[
+                  { icon: "🔒", text: "Dados criptografados" },
+                  { icon: "🚫", text: "Sem venda de dados" },
+                  { icon: "✏️", text: "Exclusão a qualquer momento" },
+                ].map((item) => (
+                  <div key={item.text} className="flex flex-col items-center gap-1.5 bg-white/5 rounded-2xl p-3 text-center border border-white/10">
+                    <span className="text-xl">{item.icon}</span>
+                    <span className="text-xs text-gray-400 leading-tight">{item.text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {showTerms ? (
-              <Card className="p-5 bg-white/10 border-white/20 text-white max-h-64 overflow-y-auto">
-                <h3 className="font-bold mb-3">Termos de Uso e Política de Privacidade</h3>
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  A plataforma <strong>Pare!</strong> coleta dados comportamentais com o objetivo exclusivo de personalizar
-                  sua jornada de recuperação. Seus dados são tratados com base no legítimo interesse e no consentimento
-                  explícito, conforme a Lei Geral de Proteção de Dados (LGPD – Lei nº 13.709/2018).
-                </p>
-                <br />
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  <strong>Dados coletados:</strong> nome, idade, cidade (opcional), hábitos comportamentais, gatilhos
-                  emocionais e interesses pessoais. Esses dados são armazenados de forma criptografada e nunca são
-                  compartilhados com terceiros sem seu consentimento.
-                </p>
-                <br />
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  <strong>Seus direitos:</strong> Você pode solicitar a exclusão ou anonimização dos seus dados a qualquer
-                  momento através das configurações da sua conta.
-                </p>
-                <br />
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  Ao aceitar, você confirma que leu e concorda com estes termos.
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-3 text-purple-300 hover:text-white"
-                  onClick={() => setShowTerms(false)}
-                >
-                  Fechar
-                </Button>
-              </Card>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full border-white/30 text-white hover:bg-white/10"
+            {/* Botão de ver termos */}
+            {!showTerms ? (
+              <button
                 onClick={() => setShowTerms(true)}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/25 transition-all group"
               >
-                Ler Termos de Uso e Política de Privacidade
-              </Button>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                    <Lock className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-200">Ler Termos de Uso e Política de Privacidade</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-gray-300 transition-colors" />
+              </button>
+            ) : (
+              <div className="rounded-2xl border border-white/15 bg-white/5 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                  <span className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-purple-400" /> Termos de Uso e Privacidade
+                  </span>
+                  <button
+                    onClick={() => setShowTerms(false)}
+                    className="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
+                  >
+                    Fechar
+                  </button>
+                </div>
+                <div className="p-4 max-h-48 overflow-y-auto space-y-3 text-xs text-gray-400 leading-relaxed">
+                  <p>A plataforma <strong className="text-gray-200">Pare!</strong> coleta dados comportamentais com o objetivo exclusivo de personalizar sua jornada de recuperação. Seus dados são tratados com base no legítimo interesse e no consentimento explícito, conforme a LGPD.</p>
+                  <p><strong className="text-gray-200">Dados coletados:</strong> nome, idade, cidade (opcional), hábitos comportamentais, gatilhos emocionais e interesses pessoais. Esses dados são armazenados de forma criptografada e nunca são compartilhados com terceiros sem seu consentimento.</p>
+                  <p><strong className="text-gray-200">Seus direitos:</strong> Você pode solicitar a exclusão ou anonimização dos seus dados a qualquer momento através das configurações da sua conta.</p>
+                </div>
+              </div>
             )}
 
-            <label className="flex items-start gap-3 cursor-pointer group">
+            {/* Checkbox de aceite */}
+            <label className="flex items-start gap-3 cursor-pointer group p-3 rounded-2xl hover:bg-white/5 transition-colors">
               <div
-                className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
-                  lgpdAccepted
-                    ? "bg-purple-500 border-purple-500"
-                    : "border-white/40 group-hover:border-white/70"
-                }`}
                 onClick={() => setLgpdAccepted(!lgpdAccepted)}
+                className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200 ${
+                  lgpdAccepted
+                    ? "bg-purple-500 border-purple-500 shadow-lg shadow-purple-500/30"
+                    : "border-white/30 group-hover:border-white/50"
+                }`}
               >
-                {lgpdAccepted && <Check className="w-4 h-4 text-white" />}
+                {lgpdAccepted && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
               </div>
-              <span className="text-gray-300 text-sm leading-relaxed">
-                Li e aceito os Termos de Uso e Política de Privacidade
+              <span className="text-sm text-gray-300 leading-relaxed">
+                Li e aceito os{" "}
+                <span className="text-purple-300 font-medium">Termos de Uso e Política de Privacidade</span>
               </span>
             </label>
           </div>
@@ -321,124 +309,111 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
       // ── Etapa 2: Identificação ─────────────────────────────────────────────
       case 2:
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <User className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white">Vamos nos conhecer</h2>
-              <p className="text-gray-300">Essas informações personalizam sua experiência.</p>
-            </div>
-
+          <div className="space-y-5">
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Como você gostaria de ser chamado aqui? *
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+                  Como você quer ser chamado? *
                 </label>
                 <input
                   type="text"
                   placeholder="Seu apelido ou nome"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
+                  className="w-full px-4 py-3.5 rounded-2xl bg-white/8 border border-white/15 text-white placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Qual sua idade? *
-                </label>
-                <input
-                  type="number"
-                  placeholder="Ex: 25"
-                  min={13}
-                  max={99}
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Em qual cidade você mora? <span className="text-gray-500">(opcional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: São Paulo"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
-                />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+                    Idade *
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Ex: 25"
+                    min={13}
+                    max={99}
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-2xl bg-white/8 border border-white/15 text-white placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+                    Cidade <span className="text-gray-600 normal-case">(opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="São Paulo"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-2xl bg-white/8 border border-white/15 text-white placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all text-sm"
+                  />
+                </div>
               </div>
             </div>
 
-            {nickname && (
-              <p className="text-center text-purple-300 font-medium animate-pulse">
-                Perfeito, {nickname}. Vamos construir algo poderoso juntos.
-              </p>
+            {nickname.trim().length > 0 && (
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                <Sparkles className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <p className="text-sm text-blue-300 font-medium">
+                  Perfeito, {nickname}. Vamos construir algo poderoso juntos.
+                </p>
+              </div>
             )}
           </div>
         );
 
-      // ── Etapa 3: Desafio principal ─────────────────────────────────────────
+      // ── Etapa 3: Desafio ───────────────────────────────────────────────────
       case 3:
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <Target className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white">Qual hábito você deseja transformar agora?</h2>
-              <p className="text-gray-300 text-sm">Pode selecionar mais de um.</p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              {ADDICTIONS.map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => {
-                    const updated = toggle(addictions, a.id);
-                    setAddictions(updated);
-                    if (!updated.includes(primaryAddiction)) setPrimaryAddiction("");
-                  }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
-                    addictions.includes(a.id)
-                      ? "border-purple-400 bg-purple-500/20 text-white"
-                      : "border-white/20 bg-white/5 text-gray-300 hover:border-white/40"
-                  }`}
-                >
-                  <span className={addictions.includes(a.id) ? "text-purple-300" : "text-gray-400"}>
-                    {a.icon}
-                  </span>
-                  <span className="font-medium">{a.label}</span>
-                  {addictions.includes(a.id) && (
-                    <Check className="w-4 h-4 text-purple-300 ml-auto" />
-                  )}
-                </button>
-              ))}
+          <div className="space-y-5">
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Selecione um ou mais</p>
+            <div className="space-y-2">
+              {ADDICTIONS.map((a) => {
+                const selected = addictions.includes(a.id);
+                return (
+                  <SelectChip
+                    key={a.id}
+                    selected={selected}
+                    color="rose"
+                    onClick={() => {
+                      const updated = toggle(addictions, a.id);
+                      setAddictions(updated);
+                      if (!updated.includes(primaryAddiction)) setPrimaryAddiction("");
+                    }}
+                  >
+                    <span className="text-lg leading-none">{a.emoji}</span>
+                    <span className="font-medium text-sm">{a.label}</span>
+                  </SelectChip>
+                );
+              })}
             </div>
 
             {addictions.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-300">Qual deles mais impacta sua vida hoje?</p>
-                <div className="grid grid-cols-1 gap-2">
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
+                  ⭐ Qual impacta mais sua vida hoje?
+                </p>
+                <div className="space-y-2">
                   {addictions.map((id) => {
                     const a = ADDICTIONS.find((x) => x.id === id)!;
                     return (
-                      <button
+                      <SelectChip
                         key={id}
+                        selected={primaryAddiction === id}
+                        color="amber"
                         onClick={() => setPrimaryAddiction(id)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
-                          primaryAddiction === id
-                            ? "border-amber-400 bg-amber-500/20 text-white"
-                            : "border-white/20 bg-white/5 text-gray-300 hover:border-white/40"
-                        }`}
                       >
-                        <span>{a.icon}</span>
-                        <span className="font-medium">{a.label}</span>
+                        <span className="text-lg leading-none">{a.emoji}</span>
+                        <span className="font-medium text-sm">{a.label}</span>
                         {primaryAddiction === id && (
-                          <Badge className="ml-auto bg-amber-500 text-white border-0 text-xs">Prioridade</Badge>
+                          <Badge className="ml-auto bg-amber-500/80 text-white border-0 text-xs px-2">
+                            Prioridade
+                          </Badge>
                         )}
-                      </button>
+                      </SelectChip>
                     );
                   })}
                 </div>
@@ -451,92 +426,80 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
       case 4:
         return (
           <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <Zap className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white">Com que frequência isso acontece?</h2>
-              <p className="text-gray-300 text-sm italic">Reconhecer é o primeiro passo da evolução.</p>
-            </div>
-
-            <div className="space-y-6">
-              {addictions.map((id) => {
-                const a = ADDICTIONS.find((x) => x.id === id)!;
-                const current = intensityMap[id] || 0;
-                return (
-                  <div key={id} className="space-y-3">
-                    <p className="text-white font-medium flex items-center gap-2">
-                      {a.icon}
-                      <span>{a.label}</span>
-                    </p>
-                    <div className="grid grid-cols-5 gap-2">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          key={n}
-                          onClick={() => setIntensityMap({ ...intensityMap, [id]: n })}
-                          className={`py-2 rounded-xl text-sm font-bold border-2 transition-all ${
-                            current === n
-                              ? "border-orange-400 bg-orange-500/30 text-orange-200"
-                              : "border-white/20 bg-white/5 text-gray-400 hover:border-white/40"
-                          }`}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                    {current > 0 && (
-                      <p className="text-xs text-gray-400 text-center">{INTENSITY_LABELS[current]}</p>
-                    )}
+            {addictions.map((id) => {
+              const a = ADDICTIONS.find((x) => x.id === id)!;
+              const current = intensityMap[id] || 0;
+              return (
+                <div key={id} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{a.emoji}</span>
+                    <span className="text-sm font-semibold text-white">{a.label}</span>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setIntensityMap({ ...intensityMap, [id]: n })}
+                        className={`py-3 rounded-2xl text-sm font-bold border-2 transition-all duration-200 ${
+                          current === n
+                            ? n <= 2
+                              ? "border-emerald-400 bg-emerald-500/25 text-emerald-200 shadow-lg shadow-emerald-500/20"
+                              : n === 3
+                              ? "border-orange-400 bg-orange-500/25 text-orange-200 shadow-lg shadow-orange-500/20"
+                              : "border-red-400 bg-red-500/25 text-red-200 shadow-lg shadow-red-500/20"
+                            : "border-white/10 bg-white/5 text-gray-500 hover:border-white/25 hover:text-gray-300"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  {current > 0 && (
+                    <p className={`text-xs font-medium ${INTENSITY_LABELS[current].color}`}>
+                      {INTENSITY_LABELS[current].label}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
 
-      // ── Etapa 5: Gatilhos emocionais ───────────────────────────────────────
+      // ── Etapa 5: Gatilhos ──────────────────────────────────────────────────
       case 5:
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <Heart className="w-8 h-8 text-white" />
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Quando acontece?</p>
+              <div className="space-y-2">
+                {TRIGGERS.map((t) => (
+                  <SelectChip
+                    key={t.label}
+                    selected={triggers.includes(t.label)}
+                    color="pink"
+                    onClick={() => setTriggers(toggle(triggers, t.label))}
+                  >
+                    <span className="text-lg leading-none">{t.emoji}</span>
+                    <span className="text-sm font-medium">{t.label}</span>
+                  </SelectChip>
+                ))}
               </div>
-              <h2 className="text-2xl font-bold text-white">Quando isso costuma acontecer?</h2>
-              <p className="text-gray-300 text-sm">Selecione os gatilhos que se aplicam a você.</p>
             </div>
 
-            <div className="space-y-2">
-              {TRIGGERS.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTriggers(toggle(triggers, t))}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
-                    triggers.includes(t)
-                      ? "border-pink-400 bg-pink-500/20 text-white"
-                      : "border-white/20 bg-white/5 text-gray-300 hover:border-white/40"
-                  }`}
-                >
-                  {triggers.includes(t) && <Check className="w-4 h-4 text-pink-300 flex-shrink-0" />}
-                  <span className={triggers.includes(t) ? "" : "ml-7"}>{t}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-300">O que você sente depois?</p>
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">O que sente depois?</p>
               <div className="flex flex-wrap gap-2">
                 {POST_EMOTIONS.map((e) => (
                   <button
-                    key={e}
-                    onClick={() => setPostEmotions(toggle(postEmotions, e))}
-                    className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all ${
-                      postEmotions.includes(e)
-                        ? "border-pink-400 bg-pink-500/20 text-white"
-                        : "border-white/20 bg-white/5 text-gray-300 hover:border-white/40"
+                    key={e.label}
+                    onClick={() => setPostEmotions(toggle(postEmotions, e.label))}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all duration-200 ${
+                      postEmotions.includes(e.label)
+                        ? "border-pink-500 bg-pink-500/20 text-white shadow-lg shadow-pink-500/20"
+                        : "border-white/10 bg-white/5 text-gray-400 hover:border-white/25 hover:text-gray-200"
                     }`}
                   >
-                    {e}
+                    <span>{e.emoji}</span> {e.label}
                   </button>
                 ))}
               </div>
@@ -547,32 +510,29 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
       // ── Etapa 6: Interesses ────────────────────────────────────────────────
       case 6:
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <Lightbulb className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white">Quais atividades fazem sentido para você?</h2>
-              <p className="text-gray-300 text-sm italic">
-                Vamos substituir o que te enfraquece por algo que te fortalece.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {INTERESTS.map((i) => (
-                <button
-                  key={i}
-                  onClick={() => setInterests(toggle(interests, i))}
-                  className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                    interests.includes(i)
-                      ? "border-green-400 bg-green-500/20 text-white"
-                      : "border-white/20 bg-white/5 text-gray-300 hover:border-white/40"
-                  }`}
-                >
-                  {interests.includes(i) && "✓ "}
-                  {i}
-                </button>
-              ))}
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+              Selecione pelo menos um
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {INTERESTS.map((i) => {
+                const selected = interests.includes(i.label);
+                return (
+                  <button
+                    key={i.label}
+                    onClick={() => setInterests(toggle(interests, i.label))}
+                    className={`flex flex-col items-center gap-2 py-4 px-2 rounded-2xl border-2 transition-all duration-200 ${
+                      selected
+                        ? "border-emerald-500 bg-emerald-500/20 text-white shadow-lg shadow-emerald-500/20"
+                        : "border-white/10 bg-white/5 text-gray-400 hover:border-white/25 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="text-2xl">{i.emoji}</span>
+                    <span className="text-xs font-medium text-center leading-tight">{i.label}</span>
+                    {selected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
@@ -581,76 +541,72 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
       case 7:
         return (
           <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <Clock className="w-8 h-8 text-white" />
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Dias por semana
+              </label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDaysPerWeek(d)}
+                    className={`flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all duration-200 ${
+                      daysPerWeek === d
+                        ? "border-cyan-400 bg-cyan-500/25 text-white shadow-lg shadow-cyan-500/20"
+                        : "border-white/10 bg-white/5 text-gray-500 hover:border-white/25 hover:text-gray-300"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
               </div>
-              <h2 className="text-2xl font-bold text-white">Qual é sua disponibilidade real?</h2>
-              <p className="text-gray-300 text-sm">Seja honesto — vamos criar uma rotina que você consegue cumprir.</p>
             </div>
 
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Quantos dias por semana você consegue dedicar a novos hábitos?
-                </label>
-                <div className="flex gap-2 flex-wrap">
-                  {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDaysPerWeek(d)}
-                      className={`w-10 h-10 rounded-xl font-bold text-sm border-2 transition-all ${
-                        daysPerWeek === d
-                          ? "border-cyan-400 bg-cyan-500/30 text-white"
-                          : "border-white/20 bg-white/5 text-gray-400 hover:border-white/40"
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Minutos por dia
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[15, 30, 45, 60].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMinutesPerDay(m)}
+                    className={`py-3 rounded-xl font-bold text-sm border-2 transition-all duration-200 ${
+                      minutesPerDay === m
+                        ? "border-cyan-400 bg-cyan-500/25 text-white shadow-lg shadow-cyan-500/20"
+                        : "border-white/10 bg-white/5 text-gray-500 hover:border-white/25 hover:text-gray-300"
+                    }`}
+                  >
+                    {m === 60 ? "60+" : m}
+                    <span className="text-xs font-normal ml-0.5">min</span>
+                  </button>
+                ))}
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Quantos minutos por dia?
-                </label>
-                <div className="flex gap-2 flex-wrap">
-                  {MINUTES_OPTIONS.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setMinutesPerDay(m)}
-                      className={`px-4 py-2 rounded-xl font-bold text-sm border-2 transition-all ${
-                        minutesPerDay === m
-                          ? "border-cyan-400 bg-cyan-500/30 text-white"
-                          : "border-white/20 bg-white/5 text-gray-400 hover:border-white/40"
-                      }`}
-                    >
-                      {m === 60 ? "60+" : m} min
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Qual o melhor período do dia?
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {["Manhã", "Tarde", "Noite"].map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setPreferredPeriod(p)}
-                      className={`py-3 rounded-xl font-medium text-sm border-2 transition-all ${
-                        preferredPeriod === p
-                          ? "border-cyan-400 bg-cyan-500/30 text-white"
-                          : "border-white/20 bg-white/5 text-gray-300 hover:border-white/40"
-                      }`}
-                    >
-                      {p === "Manhã" ? "🌅" : p === "Tarde" ? "☀️" : "🌙"} {p}
-                    </button>
-                  ))}
-                </div>
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Melhor período do dia
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Manhã", emoji: "🌅" },
+                  { label: "Tarde", emoji: "☀️" },
+                  { label: "Noite", emoji: "🌙" },
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    onClick={() => setPreferredPeriod(p.label)}
+                    className={`flex flex-col items-center gap-2 py-4 rounded-2xl border-2 font-medium text-sm transition-all duration-200 ${
+                      preferredPeriod === p.label
+                        ? "border-cyan-400 bg-cyan-500/25 text-white shadow-lg shadow-cyan-500/20"
+                        : "border-white/10 bg-white/5 text-gray-400 hover:border-white/25 hover:text-gray-200"
+                    }`}
+                  >
+                    <span className="text-2xl">{p.emoji}</span>
+                    <span>{p.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -659,29 +615,24 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
       // ── Etapa 8: Visão de futuro ───────────────────────────────────────────
       case 8:
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <Star className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white">
-                Se você vencer esse hábito, como sua vida estará daqui 6 meses?
-              </h2>
-              <p className="text-gray-300 text-sm">Escreva com detalhes. Essa é a sua versão futura.</p>
-            </div>
-
+          <div className="space-y-5">
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Escreva com detalhes. Essa frase se tornará sua âncora nos momentos difíceis.
+            </p>
             <textarea
               placeholder="Ex: Vou ter mais energia, foco no trabalho, me sentir orgulhoso de mim mesmo, ter relacionamentos mais saudáveis..."
               value={futureVision}
               onChange={(e) => setFutureVision(e.target.value)}
               rows={6}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 resize-none"
+              className="w-full px-4 py-3.5 rounded-2xl bg-white/8 border border-white/15 text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all text-sm resize-none leading-relaxed"
             />
-
             {futureVision.trim().length > 20 && (
-              <p className="text-center text-amber-300 font-medium">
-                Essa é a sua versão futura. Vamos construí-la a partir de hoje. 🚀
-              </p>
+              <div className="flex items-start gap-2.5 px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-300 font-medium leading-relaxed">
+                  Essa é a sua versão futura. Vamos construí-la a partir de hoje. 🚀
+                </p>
+              </div>
             )}
           </div>
         );
@@ -691,86 +642,123 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
     }
   };
 
-  const stepTitles = [
-    "Privacidade",
-    "Conexão",
-    "Desafio",
-    "Intensidade",
-    "Gatilhos",
-    "Interesses",
-    "Disponibilidade",
-    "Visão",
-  ];
+  // ── Layout Principal ───────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      <div className="max-w-lg w-full">
-        {/* Header */}
-        <div className="flex justify-center mb-6">
+    <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Glow de fundo */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[50%] -translate-x-1/2 w-[600px] h-[600px] bg-purple-700/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-pink-700/15 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="max-w-md w-full relative z-10">
+
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
           <Logo size="lg" />
         </div>
 
-        {/* Progress */}
-        <div className="mb-6 space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">
-              Etapa {step} de {TOTAL_STEPS} — {stepTitles[step - 1]}
+        {/* Progress Header */}
+        <div className="mb-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-7 h-7 rounded-xl bg-gradient-to-br ${cfg.gradient} flex items-center justify-center shadow-lg`}>
+                <StepIcon className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white leading-none">{cfg.title}</p>
+                <p className="text-[10px] text-gray-500 leading-none mt-0.5">{cfg.subtitle}</p>
+              </div>
+            </div>
+            <span className="text-xs font-semibold text-gray-500">
+              {step}<span className="text-gray-700">/{TOTAL_STEPS}</span>
             </span>
-            <span className="text-xs text-gray-400">{Math.round(progress)}%</span>
           </div>
-          <div className="w-full bg-white/10 rounded-full h-2">
+
+          {/* Barra de progresso */}
+          <div className="w-full bg-white/8 rounded-full h-1.5 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
+              className={`h-full bg-gradient-to-r ${cfg.gradient} rounded-full transition-all duration-500 ease-out`}
               style={{ width: `${progress}%` }}
             />
           </div>
-          {/* Step dots */}
-          <div className="flex justify-center gap-1.5 mt-1">
+
+          {/* Dots */}
+          <div className="flex justify-center gap-1.5">
             {Array.from({ length: TOTAL_STEPS }, (_, i) => (
               <div
                 key={i}
-                className={`rounded-full transition-all ${
+                className={`rounded-full transition-all duration-300 ${
                   i + 1 === step
-                    ? "w-4 h-2 bg-purple-400"
+                    ? "w-5 h-1.5 bg-white"
                     : i + 1 < step
-                    ? "w-2 h-2 bg-purple-600"
-                    : "w-2 h-2 bg-white/20"
+                    ? "w-1.5 h-1.5 bg-white/40"
+                    : "w-1.5 h-1.5 bg-white/10"
                 }`}
               />
             ))}
           </div>
         </div>
 
-        {/* Content */}
-        <Card className="bg-white/5 border-white/10 p-6 backdrop-blur-sm">
-          {renderStep()}
-        </Card>
+        {/* Card principal */}
+        <div className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 shadow-2xl">
+          {/* Título da etapa */}
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-white leading-snug">
+              {step === 1 && "Você está prestes a iniciar uma nova fase da sua vida."}
+              {step === 2 && `Olá! Como você quer ser chamado?`}
+              {step === 3 && "Qual hábito você deseja transformar agora?"}
+              {step === 4 && "Com que frequência isso acontece?"}
+              {step === 5 && "Quando isso costuma acontecer?"}
+              {step === 6 && "Quais atividades fazem sentido para você?"}
+              {step === 7 && "Qual é sua disponibilidade real?"}
+              {step === 8 && "Como sua vida estará daqui 6 meses?"}
+            </h2>
+            {step === 4 && (
+              <p className="text-xs text-gray-500 mt-1 italic">Reconhecer é o primeiro passo da evolução.</p>
+            )}
+            {step === 6 && (
+              <p className="text-xs text-gray-500 mt-1">Vamos substituir o que te enfraquece por algo que te fortalece.</p>
+            )}
+            {step === 7 && (
+              <p className="text-xs text-gray-500 mt-1">Seja honesto — vamos criar uma rotina que você consegue cumprir.</p>
+            )}
+          </div>
 
-        {/* Navigation */}
-        <div className="flex gap-3 mt-6">
+          {renderStep()}
+        </div>
+
+        {/* Navegação */}
+        <div className="flex gap-3 mt-4">
           {step > 1 && (
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={handleBack}
-              className="flex-1 border-white/30 text-white hover:bg-white/10"
+              className="h-14 px-5 rounded-2xl border border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all"
             >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Voltar
+              <ChevronLeft className="w-5 h-5" />
             </Button>
           )}
           <Button
             onClick={handleNext}
             disabled={!canAdvance()}
-            className={`flex-1 font-semibold ${
-              step === TOTAL_STEPS
-                ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
-                : "bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-            } text-white border-0 disabled:opacity-40`}
+            className={`flex-1 h-14 rounded-2xl font-semibold text-base transition-all duration-200 border-0 ${
+              canAdvance()
+                ? step === TOTAL_STEPS
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-xl shadow-amber-500/30"
+                  : `bg-gradient-to-r ${cfg.gradient} hover:opacity-90 text-white shadow-xl shadow-purple-500/20`
+                : "bg-white/10 text-gray-600 cursor-not-allowed"
+            }`}
           >
             {step === TOTAL_STEPS ? (
-              <>Começar Minha Jornada <Star className="w-4 h-4 ml-1" /></>
+              <span className="flex items-center gap-2">
+                Começar Minha Jornada <Sparkles className="w-5 h-5" />
+              </span>
             ) : (
-              <>Continuar <ChevronRight className="w-4 h-4 ml-1" /></>
+              <span className="flex items-center gap-2">
+                Continuar <ArrowRight className="w-5 h-5" />
+              </span>
             )}
           </Button>
         </div>
