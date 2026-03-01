@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { Season } from "./WeeklyRoutineSetup";
 import type { BehavioralProfile } from "./OnboardingBehavioral";
+import { ALL_ACHIEVEMENTS } from "./Achievements";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,14 +61,8 @@ export const LEVELS = [
   { level: 5, name: "Inspirador",   minPoints: 2000, maxPoints: 999999, color: "from-amber-400 to-orange-500" },
 ];
 
-export const ACHIEVEMENTS_DEFINITIONS: Achievement[] = [
-  { id: "first_week",    name: "Primeira Semana Limpa",          description: "Complete uma semana inteira sem recaídas",               icon: "🌱", unlocked: false, requiredDays: 7 },
-  { id: "seven_days",    name: "7 Dias Consecutivos",            description: "Mantenha 7 dias seguidos de hábitos cumpridos",          icon: "🔥", unlocked: false, requiredDays: 7 },
-  { id: "thirty_days",   name: "30 Dias Consecutivos",           description: "Mantenha 30 dias seguidos de hábitos cumpridos",         icon: "💎", unlocked: false, requiredDays: 30 },
-  { id: "first_season",  name: "Primeira Temporada Finalizada",  description: "Complete sua primeira temporada com sucesso",            icon: "🏆", unlocked: false },
-  { id: "three_seasons", name: "3 Temporadas Finalizadas",       description: "Complete três temporadas com sucesso",                   icon: "👑", unlocked: false },
-  { id: "perfect_week",  name: "Semana Perfeita",                description: "Complete todos os hábitos em uma semana",                icon: "⭐", unlocked: false },
-];
+// Conquistas definidas em Achievements.tsx (ALL_ACHIEVEMENTS) — fonte única de verdade
+export const ACHIEVEMENTS_DEFINITIONS: Achievement[] = ALL_ACHIEVEMENTS.map((a) => ({ ...a, unlocked: false }));
 
 export function calculatePoints(logs: HabitLog[]): UserPoints {
   let total = 0;

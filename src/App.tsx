@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 import { AuthScreen } from "./components/AuthScreen";
 import { ModernDashboard } from "./components/ModernDashboard";
-import { Achievements } from "./components/Achievements";
+import { Achievements, ALL_ACHIEVEMENTS } from "./components/Achievements";
 import { Stats } from "./components/Stats";
 import { Forum } from "./components/Forum";
 import Appointments from "./components/Appointments";
@@ -114,6 +114,11 @@ export default function App() {
     }
     return null;
   });
+
+  // Inicializar conquistas com a lista completa se ainda não existirem
+  const resolvedAchievements: Achievement[] = userProfile?.achievements?.length
+    ? userProfile.achievements
+    : ALL_ACHIEVEMENTS.map((a) => ({ ...a, unlocked: false }));
 
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showRelapseDialog, setShowRelapseDialog] = useState(false);
@@ -683,10 +688,14 @@ export default function App() {
 
             {/* ── Conquistas ──────────────────────────────────────────────────── */}
             <TabsContent value="achievements">
-              <Achievements
-                dayCount={currentModule.dayCount}
-                longestStreak={currentModule.longestStreak}
-              />
+              {hasSeason ? (
+                <Achievements achievements={resolvedAchievements} />
+              ) : (
+                <Achievements
+                  dayCount={currentModule.dayCount}
+                  longestStreak={currentModule.longestStreak}
+                />
+              )}
             </TabsContent>
 
             {/* ── Stats ───────────────────────────────────────────────────────── */}
