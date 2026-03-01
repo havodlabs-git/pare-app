@@ -1,0 +1,55 @@
+name: Build & Deploy — Firebase Hosting
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch: # permite disparar manualmente pela UI do GitHub
+
+jobs:
+  build-and-deploy:
+    name: Build e Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout do código
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      # 2. Configurar Node.js
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # 3. Instalar pnpm
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # 4. Cache das dependências
+      - name: Cache das dependências pnpm
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      # 5. Instalar dependências
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      # 6. Build de produção
+      - name: Build de produção
+        run: pnpm run build
+
+      # 7. Deploy para Firebase Hosting
+      - name: Deploy para Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: pare-app-483321
