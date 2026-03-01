@@ -178,14 +178,8 @@ export function SeasonDashboard({
   const WEEK_DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 50%, #0d0d1a 100%)" }}>
-      {/* Ambient glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #7c3aed, transparent)" }} />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #ec4899, transparent)" }} />
-      </div>
-
-      <div className="relative z-10 max-w-2xl mx-auto px-4 pt-6 pb-24">
+    <div className="min-h-screen">
+      <div className="max-w-2xl mx-auto px-4 pt-2 pb-24">
 
         {/* ── Top Header ─────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-5">
