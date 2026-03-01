@@ -4,22 +4,31 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Logo } from "./Logo";
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Target, Trophy, Users } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Target, Trophy, Users, Stethoscope, KeyRound, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { PsychologistPartnerForm } from "./PsychologistPartnerForm";
+import { OTPVerification } from "./OTPVerification";
+import api from "../services/api";
+
+type AuthMode = "login" | "register" | "otp-login";
 
 export function AuthScreen() {
-  const { login, register, loading } = useAuth();
+  const { login, register, loading, updateUser } = useAuth();
   const toast = useToast();
-  const [isLogin, setIsLogin] = useState(true);
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [showPartnerForm, setShowPartnerForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [otpEmail, setOtpEmail] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
+
+  const isLogin = authMode === "login";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +77,80 @@ export function AuthScreen() {
       setIsSubmitting(false);
     }
   };
+
+  const handleOTPLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.email) {
+      toast.error("Digite seu email");
+      return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Digite um email válido");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await api.post("/otp/send", {
+        email: formData.email,
+        purpose: "login",
+      });
+
+      if (response.data.success) {
+        toast.success("Código enviado para seu email!");
+        setOtpEmail(formData.email);
+        setAuthMode("otp-login");
+        
+        // Em desenvolvimento, mostrar o código no console
+        if (response.data.devCode) {
+          console.log("DEV OTP Code:", response.data.devCode);
+          toast.info(`Código de teste: ${response.data.devCode}`);
+        }
+      }
+    } catch (error: any) {
+      console.error("OTP send error:", error);
+      const message = error.response?.data?.message || error.message || "Erro ao enviar código";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOTPVerified = (data: { user: any; token: string }) => {
+    // Salvar token e atualizar estado de autenticação
+    if (data.token) {
+      api.setToken(data.token);
+      localStorage.setItem("pare_current_user", data.user.email);
+    }
+    
+    // Recarregar a página para atualizar o estado de autenticação
+    window.location.reload();
+  };
+
+  // Se estiver mostrando o formulário de psicólogo parceiro
+  if (showPartnerForm) {
+    return <PsychologistPartnerForm onBack={() => setShowPartnerForm(false)} />;
+  }
+
+  // Se estiver na tela de verificação OTP
+  if (authMode === "otp-login" && otpEmail) {
+    return (
+      <OTPVerification
+        email={otpEmail}
+        purpose="login"
+        onVerified={handleOTPVerified}
+        onBack={() => {
+          setAuthMode("login");
+          setOtpEmail("");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -230,7 +313,10 @@ export function AuthScreen() {
               disabled={isSubmitting || loading}
             >
               {isSubmitting ? (
-                "Processando..."
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Processando...
+                </>
               ) : (
                 <>
                   {isLogin ? "Entrar" : "Criar conta"}
@@ -240,15 +326,60 @@ export function AuthScreen() {
             </Button>
           </form>
 
+          {/* Login com OTP */}
+          {isLogin && (
+            <div className="mt-4">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">ou</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 mt-4 border-border hover:bg-secondary"
+                onClick={handleOTPLogin}
+                disabled={isSubmitting || loading || !formData.email}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Enviando código...
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="mr-2 h-5 w-5" />
+                    Entrar com código por email
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
           <div className="mt-6 text-center">
             <button
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => setAuthMode(isLogin ? "register" : "login")}
               className="text-primary hover:text-primary/80 font-medium transition-colors"
               disabled={isSubmitting}
             >
               {isLogin
                 ? "Não tem uma conta? Cadastre-se"
                 : "Já tem uma conta? Faça login"}
+            </button>
+          </div>
+
+          {/* Link para Psicólogo Parceiro */}
+          <div className="mt-8 pt-6 border-t border-border">
+            <button
+              onClick={() => setShowPartnerForm(true)}
+              className="w-full flex items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Stethoscope className="h-5 w-5" />
+              <span>Quer se tornar um Psicólogo parceiro?</span>
             </button>
           </div>
         </Card>

@@ -12,10 +12,13 @@ import { ModuleSelector } from "./components/ModuleSelector";
 import { LogoWithText } from "./components/Logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./components/ui/alert-dialog";
-import { Home, Award, BarChart3, MessageSquare, LogOut, User, CreditCard, Video, MessageCircle } from "lucide-react";
+import { Home, Award, BarChart3, MessageSquare, LogOut, User, CreditCard, Video, MessageCircle, Save, Loader2, Settings, Receipt, ChevronDown, Bell, Shield, Trash2, HelpCircle, Mail } from "lucide-react";
 import Chat from "./components/Chat";
 import { useToast } from "./context/ToastContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./components/ui/dialog";
+import { Input } from "./components/ui/input";
+import { Label } from "./components/ui/label";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 
@@ -100,7 +103,7 @@ function checkAchievements(logs: HabitLog[], prevAchievements: Achievement[]): A
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function App() {
-  const { user, isAuthenticated, logout: authLogout, loading } = useAuth();
+  const { user, isAuthenticated, logout: authLogout, loading, updateUser, refreshUser } = useAuth();
   const toast = useToast();
   const currentUser = user;
 
@@ -116,14 +119,44 @@ export default function App() {
   const [showRelapseDialog, setShowRelapseDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  // Carregar perfil quando o utilizador muda
+  // Profile & Settings modal states
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profilePassword, setProfilePassword] = useState("");
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  // User settings
+  const [userSettings, setUserSettings] = useState(() => {
+    if (currentUser) {
+      const saved = localStorage.getItem(`pare_settings_${currentUser.email}`);
+      if (saved) return { notifications: { dailyReminders: true, motivationalMessages: true, achievementUnlocked: true }, privacy: { profileVisibleInForum: true, showDaysInProfile: true }, ...JSON.parse(saved) };
+    }
+    return { notifications: { dailyReminders: true, motivationalMessages: true, achievementUnlocked: true }, privacy: { profileVisibleInForum: true, showDaysInProfile: true } };
+  });
+
+  // Refresh user data from backend on mount to sync plan changes
+  useEffect(() => {
+    if (isAuthenticated && refreshUser) {
+      refreshUser();
+    }
+  }, [isAuthenticated]);
+
+  // Carregar perfil quando o utilizador muda e sincronizar plano com backend
   useEffect(() => {
     if (currentUser) {
       const saved = localStorage.getItem(`${USER_PROFILE_PREFIX}${currentUser.email}`);
-      if (saved) {
-        setUserProfile(JSON.parse(saved));
-      } else {
-        setUserProfile(null);
+      let profile = saved ? JSON.parse(saved) : null;
+      // Sincronizar plano com o backend
+      if (profile && currentUser.plan && profile.plan !== currentUser.plan) {
+        profile = { ...profile, plan: currentUser.plan, planExpiresAt: currentUser.planExpiresAt || undefined };
+        localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(profile));
+      }
+      setUserProfile(profile);
+      const savedSettings = localStorage.getItem(`pare_settings_${currentUser.email}`);
+      if (savedSettings) {
+        setUserSettings((prev: any) => ({ ...prev, ...JSON.parse(savedSettings) }));
       }
     } else {
       setUserProfile(null);
@@ -279,6 +312,39 @@ export default function App() {
   const handleRegisterRelapse = (habitId: string) => {
     handleLogHabit(habitId, "relapse");
     toast.info("Recaída registrada. Reconhecer é o primeiro passo. Continue!");
+  };
+
+  // ── Handlers de Perfil e Configurações ──────────────────────────────────
+
+  const handleOpenProfileModal = () => {
+    if (currentUser) {
+      setProfileName(currentUser.name || "");
+      setProfilePassword("");
+      setProfileConfirmPassword("");
+      setShowProfileModal(true);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!currentUser) return;
+    if (!profileName.trim()) { toast.error("O nome não pode estar vazio"); return; }
+    if (profilePassword && profilePassword !== profileConfirmPassword) { toast.error("As senhas não coincidem"); return; }
+    if (profilePassword && profilePassword.length < 6) { toast.error("A senha deve ter pelo menos 6 caracteres"); return; }
+    setProfileSaving(true);
+    try {
+      const api = (await import("./services/api")).default;
+      if (profileName !== currentUser.name) {
+        await api.updateProfile({ name: profileName });
+        if (updateUser) updateUser({ name: profileName });
+      }
+      if (profilePassword) await api.changePassword("", profilePassword);
+      toast.success("Perfil atualizado com sucesso!");
+      setShowProfileModal(false);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao atualizar perfil");
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   // ── Handlers Legados ──────────────────────────────────────────────────────
@@ -489,45 +555,58 @@ export default function App() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
+                  <Button variant="ghost" size="sm" className="gap-2 hover:bg-gray-100 transition-colors">
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
                       {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
-                    <span className="hidden md:inline">{currentUser?.name}</span>
+                    <span className="hidden md:inline font-medium">{currentUser?.name}</span>
+                    <ChevronDown className="w-4 h-4 text-gray-400 hidden md:inline" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div>
-                      <p className="font-medium">{currentUser?.name}</p>
-                      <p className="text-xs text-gray-500 font-normal">{currentUser?.email}</p>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{currentUser?.name}</p>
+                        <p className="text-xs text-gray-500 font-normal">{currentUser?.email}</p>
+                        {userProfile.plan !== "free" && (
+                          <Badge className={`mt-1 text-xs ${
+                            userProfile.plan === "premium"
+                              ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                              : "bg-gradient-to-r from-amber-500 to-orange-500"
+                          } text-white border-0`}>
+                            {userProfile.plan === "premium" ? "⚡ Premium" : "👑 Elite"}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </DropdownMenuLabel>
-                  {userProfile.behavioralProfile && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs font-normal text-gray-500">
-                        Perfil: {userProfile.behavioralProfile.behaviorProfile}
-                      </DropdownMenuLabel>
-                    </>
-                  )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <User className="w-4 h-4 mr-2" />
-                    Meu perfil
+                  <DropdownMenuItem onSelect={handleOpenProfileModal} className="cursor-pointer py-2.5">
+                    <User className="w-4 h-4 mr-3 text-gray-500" />
+                    <span>Meu Perfil</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveTab("pricing")}>
-                    <CreditCard className="w-4 h-4 mr-2" />
-                    Planos e Assinatura
+                  <DropdownMenuItem onSelect={() => setActiveTab("pricing")} className="cursor-pointer py-2.5">
+                    <CreditCard className="w-4 h-4 mr-3 text-gray-500" />
+                    <span>Plano Atual</span>
+                    <span className="ml-auto text-xs text-gray-400 capitalize">{userProfile.plan}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setActiveTab("pricing")} className="cursor-pointer py-2.5">
+                    <Receipt className="w-4 h-4 mr-3 text-gray-500" />
+                    <span>Faturamento</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowResetDialog(true)} className="text-orange-600">
-                    <Award className="w-4 h-4 mr-2" />
-                    Reiniciar jornada
+                  <DropdownMenuItem onSelect={() => setShowSettingsModal(true)} className="cursor-pointer py-2.5">
+                    <Settings className="w-4 h-4 mr-3 text-gray-500" />
+                    <span>Configurações</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sair
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer py-2.5 text-red-600 focus:text-red-600 focus:bg-red-50">
+                    <LogOut className="w-4 h-4 mr-3" />
+                    <span>Sair da Conta</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -670,6 +749,93 @@ export default function App() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Profile Edit Modal */}
+      <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Perfil</DialogTitle>
+            <DialogDescription>Atualize suas informações pessoais. Deixe os campos de senha em branco para mantê-la.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" value={currentUser?.email || ""} disabled className="bg-gray-100" />
+              <p className="text-xs text-gray-500">O email não pode ser alterado</p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="name">Nome</Label>
+              <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="Seu nome" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Nova Senha (opcional)</Label>
+              <Input id="password" type="password" value={profilePassword} onChange={(e) => setProfilePassword(e.target.value)} placeholder="Deixe em branco para manter a atual" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+              <Input id="confirmPassword" type="password" value={profileConfirmPassword} onChange={(e) => setProfileConfirmPassword(e.target.value)} placeholder="Confirme a nova senha" disabled={!profilePassword} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProfileModal(false)}>Cancelar</Button>
+            <Button onClick={handleSaveProfile} disabled={profileSaving}>
+              {profileSaving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Save className="w-4 h-4 mr-2" />Salvar</>)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Modal */}
+      <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />Configurações</DialogTitle>
+            <DialogDescription>Personalize sua experiência no Pare!</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm text-gray-900 flex items-center gap-2"><Bell className="w-4 h-4" />Notificações</h4>
+              <div className="space-y-2 pl-6">
+                {[{key:"dailyReminders",label:"Lembretes diários"},{key:"motivationalMessages",label:"Mensagens motivacionais"},{key:"achievementUnlocked",label:"Conquistas desbloqueadas"}].map(({key,label})=>(
+                  <label key={key} className="flex items-center justify-between cursor-pointer">
+                    <span className="text-sm text-gray-600">{label}</span>
+                    <input type="checkbox" checked={(userSettings as any).notifications[key]}
+                      onChange={(e)=>{const s={...userSettings,notifications:{...(userSettings as any).notifications,[key]:e.target.checked}};setUserSettings(s);if(currentUser)localStorage.setItem(`pare_settings_${currentUser.email}`,JSON.stringify(s));}}
+                      className="w-4 h-4 accent-purple-600" />
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm text-gray-900 flex items-center gap-2"><Shield className="w-4 h-4" />Privacidade</h4>
+              <div className="space-y-2 pl-6">
+                {[{key:"profileVisibleInForum",label:"Perfil visível no fórum"},{key:"showDaysInProfile",label:"Mostrar dias no perfil"}].map(({key,label})=>(
+                  <label key={key} className="flex items-center justify-between cursor-pointer">
+                    <span className="text-sm text-gray-600">{label}</span>
+                    <input type="checkbox" checked={(userSettings as any).privacy[key]}
+                      onChange={(e)=>{const s={...userSettings,privacy:{...(userSettings as any).privacy,[key]:e.target.checked}};setUserSettings(s);if(currentUser)localStorage.setItem(`pare_settings_${currentUser.email}`,JSON.stringify(s));}}
+                      className="w-4 h-4 accent-purple-600" />
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm text-gray-900 flex items-center gap-2"><HelpCircle className="w-4 h-4" />Suporte</h4>
+              <div className="pl-6"><a href="mailto:suporte@pareapp.com.br" className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700"><Mail className="w-4 h-4" />suporte@pareapp.com.br</a></div>
+            </div>
+            <div className="space-y-3 pt-4 border-t">
+              <h4 className="font-medium text-sm text-red-600 flex items-center gap-2"><Trash2 className="w-4 h-4" />Zona de Perigo</h4>
+              <div className="pl-6">
+                <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300" onClick={()=>{setShowSettingsModal(false);setShowResetDialog(true);}}>
+                  <Trash2 className="w-4 h-4 mr-2" />Resetar Todo o Progresso
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">Esta ação irá apagar todos os seus dados e não pode ser desfeita.</p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter><Button onClick={()=>setShowSettingsModal(false)}>Fechar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Relapse Dialog (legado) */}
       <AlertDialog open={showRelapseDialog} onOpenChange={setShowRelapseDialog}>

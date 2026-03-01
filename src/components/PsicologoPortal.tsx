@@ -16,8 +16,10 @@ interface Appointment {
   duration: number;
   status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
   notes: string;
-  zoomStartUrl: string;
-  zoomJoinUrl: string;
+  zoomStartUrl?: string;
+  zoomJoinUrl?: string;
+  meetingUrl?: string;
+  meetingJoinUrl?: string;
 }
 
 interface Professional {
@@ -122,6 +124,32 @@ const PsicologoPortal: React.FC = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Profile edit state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    title: '',
+    specialty: '',
+    bio: ''
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState('');
+
+  // Schedule edit state
+  const [scheduleForm, setScheduleForm] = useState<Record<string, { start: string; end: string; duration: number }[]>>({
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: []
+  });
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
+  const [scheduleSuccess, setScheduleSuccess] = useState('');
+
   // Check if already logged in
   useEffect(() => {
     const savedToken = localStorage.getItem('pare_professional_token');
@@ -163,10 +191,93 @@ const PsicologoPortal: React.FC = () => {
     try {
       const response = await apiRequest('/api/professionals/profile', { method: 'GET' }, authToken);
       setProfessional(response.data);
+      // Initialize form with current data
+      if (response.data) {
+        setProfileForm({
+          name: response.data.name || '',
+          title: response.data.title || '',
+          specialty: response.data.specialty || '',
+          bio: response.data.bio || ''
+        });
+        setScheduleForm(response.data.schedule || {
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+          saturday: [],
+          sunday: []
+        });
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
       handleLogout();
     }
+  };
+
+  // Save profile
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    setProfileError('');
+    setProfileSuccess('');
+    try {
+      await apiRequest('/api/professionals/profile', {
+        method: 'PUT',
+        body: JSON.stringify(profileForm)
+      });
+      setProfileSuccess('Perfil atualizado com sucesso!');
+      setIsEditingProfile(false);
+      // Reload profile to get updated data
+      if (token) await loadProfile(token);
+    } catch (error: any) {
+      setProfileError(error.message || 'Erro ao salvar perfil');
+    }
+    setSavingProfile(false);
+  };
+
+  // Save schedule
+  const handleSaveSchedule = async () => {
+    setSavingSchedule(true);
+    setScheduleError('');
+    setScheduleSuccess('');
+    try {
+      await apiRequest('/api/professionals/schedule', {
+        method: 'PUT',
+        body: JSON.stringify({ schedule: scheduleForm })
+      });
+      setScheduleSuccess('Agenda atualizada com sucesso!');
+      // Reload profile to get updated data
+      if (token) await loadProfile(token);
+    } catch (error: any) {
+      setScheduleError(error.message || 'Erro ao salvar agenda');
+    }
+    setSavingSchedule(false);
+  };
+
+  // Add time slot to a day
+  const addTimeSlot = (day: string) => {
+    setScheduleForm(prev => ({
+      ...prev,
+      [day]: [...(prev[day] || []), { start: '09:00', end: '10:00', duration: 50 }]
+    }));
+  };
+
+  // Remove time slot from a day
+  const removeTimeSlot = (day: string, index: number) => {
+    setScheduleForm(prev => ({
+      ...prev,
+      [day]: prev[day].filter((_, i) => i !== index)
+    }));
+  };
+
+  // Update time slot
+  const updateTimeSlot = (day: string, index: number, field: 'start' | 'end', value: string) => {
+    setScheduleForm(prev => ({
+      ...prev,
+      [day]: prev[day].map((slot, i) => 
+        i === index ? { ...slot, [field]: value } : slot
+      )
+    }));
   };
 
   // Load appointments for a specific date
@@ -175,7 +286,9 @@ const PsicologoPortal: React.FC = () => {
     setLoading(true);
     try {
       const dateStr = (date || selectedDate).toISOString().split('T')[0];
+      console.log('[DEBUG] loadAppointments - Fetching for date:', dateStr);
       const response = await apiRequest(`/api/professionals/appointments?date=${dateStr}`, { method: 'GET' });
+      console.log('[DEBUG] loadAppointments - Response:', response);
       setAppointments(response.data || []);
     } catch (error) {
       console.error('Error loading appointments:', error);
@@ -189,7 +302,9 @@ const PsicologoPortal: React.FC = () => {
     try {
       const year = month.getFullYear();
       const monthNum = month.getMonth() + 1;
+      console.log('[DEBUG] loadMonthAppointments - Fetching for month:', `${year}-${String(monthNum).padStart(2, '0')}`);
       const response = await apiRequest(`/api/professionals/appointments?month=${year}-${String(monthNum).padStart(2, '0')}`, { method: 'GET' });
+      console.log('[DEBUG] loadMonthAppointments - Response:', response);
       
       // Group appointments by date
       const grouped: Record<string, Appointment[]> = {};
@@ -744,16 +859,20 @@ const PsicologoPortal: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {apt.zoomStartUrl && (
+                  {(apt.meetingUrl || apt.meetingJoinUrl || apt.zoomStartUrl || apt.zoomJoinUrl) ? (
                     <a
-                      href={apt.zoomStartUrl}
+                      href={apt.meetingUrl || apt.meetingJoinUrl || apt.zoomStartUrl || apt.zoomJoinUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 flex items-center gap-2"
                     >
                       <Video className="w-4 h-4" />
-                      Iniciar
+                      Iniciar Sessão
                     </a>
+                  ) : (
+                    <span className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg text-sm">
+                      Link em preparação...
+                    </span>
                   )}
                 </div>
               </div>
@@ -911,15 +1030,15 @@ const PsicologoPortal: React.FC = () => {
                            apt.status === 'cancelled' ? 'Cancelado' : 'Não compareceu'}
                         </span>
                         <div className="flex flex-wrap gap-2 mt-2 justify-end">
-                          {apt.zoomStartUrl && apt.status !== 'completed' && apt.status !== 'cancelled' && (
+                          {(apt.meetingUrl || apt.meetingJoinUrl || apt.zoomStartUrl || apt.zoomJoinUrl) && apt.status !== 'completed' && apt.status !== 'cancelled' && (
                             <a
-                              href={apt.zoomStartUrl}
+                              href={apt.meetingUrl || apt.meetingJoinUrl || apt.zoomStartUrl || apt.zoomJoinUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 flex items-center gap-1"
                             >
                               <Video className="w-4 h-4" />
-                              Iniciar
+                              Iniciar Sessão
                             </a>
                           )}
                           {apt.status === 'scheduled' && (
@@ -1181,10 +1300,43 @@ const PsicologoPortal: React.FC = () => {
   };
 
   // Render Profile
+  const dayNames: Record<string, string> = {
+    monday: 'Segunda-feira',
+    tuesday: 'Terça-feira',
+    wednesday: 'Quarta-feira',
+    thursday: 'Quinta-feira',
+    friday: 'Sexta-feira',
+    saturday: 'Sábado',
+    sunday: 'Domingo'
+  };
+
   const renderProfile = () => (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold text-zinc-900 mb-6">Meu Perfil</h2>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-zinc-900">Meu Perfil</h2>
+        {!isEditingProfile && (
+          <button
+            onClick={() => setIsEditingProfile(true)}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+          >
+            Editar Perfil
+          </button>
+        )}
+      </div>
+
+      {/* Success/Error Messages */}
+      {profileSuccess && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+          {profileSuccess}
+        </div>
+      )}
+      {profileError && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {profileError}
+        </div>
+      )}
       
+      {/* Profile Card */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-zinc-100">
         <div className="flex items-start gap-6 mb-6">
           <div className="w-24 h-24 bg-teal-100 rounded-2xl flex items-center justify-center">
@@ -1194,14 +1346,50 @@ const PsicologoPortal: React.FC = () => {
               <User className="w-12 h-12 text-teal-600" />
             )}
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-zinc-900">{professional?.name}</h3>
-            <p className="text-teal-600 font-medium">{professional?.title}</p>
-            <p className="text-zinc-500">{professional?.specialty}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <Award className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-zinc-600">CRP: {professional?.crp}</span>
-            </div>
+          <div className="flex-1">
+            {isEditingProfile ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Nome</label>
+                  <input
+                    type="text"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Título</label>
+                  <input
+                    type="text"
+                    value={profileForm.title}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    placeholder="Ex: Psicólogo(a) Clínico(a)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Especialidade</label>
+                  <input
+                    type="text"
+                    value={profileForm.specialty}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, specialty: e.target.value }))}
+                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    placeholder="Ex: Terapia Cognitivo-Comportamental"
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold text-zinc-900">{professional?.name}</h3>
+                <p className="text-teal-600 font-medium">{professional?.title}</p>
+                <p className="text-zinc-500">{professional?.specialty}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Award className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm text-zinc-600">CRP: {professional?.crp}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -1220,8 +1408,123 @@ const PsicologoPortal: React.FC = () => {
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-zinc-700 mb-2">Sobre</label>
-            <p className="text-zinc-600">{professional?.bio || 'Nenhuma descrição adicionada.'}</p>
+            {isEditingProfile ? (
+              <textarea
+                value={profileForm.bio}
+                onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent min-h-[100px]"
+                placeholder="Descreva sua experiência e abordagem terapêutica..."
+              />
+            ) : (
+              <p className="text-zinc-600">{professional?.bio || 'Nenhuma descrição adicionada.'}</p>
+            )}
           </div>
+        </div>
+
+        {isEditingProfile && (
+          <div className="flex gap-3 mt-6 pt-6 border-t border-zinc-100">
+            <button
+              onClick={handleSaveProfile}
+              disabled={savingProfile}
+              className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+            >
+              {savingProfile ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+            <button
+              onClick={() => {
+                setIsEditingProfile(false);
+                setProfileForm({
+                  name: professional?.name || '',
+                  title: professional?.title || '',
+                  specialty: professional?.specialty || '',
+                  bio: professional?.bio || ''
+                });
+              }}
+              className="px-6 py-2 bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Schedule Configuration */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-zinc-100">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-zinc-900">Disponibilidade de Agenda</h3>
+            <p className="text-sm text-zinc-500">Configure os horários em que você está disponível para atendimento</p>
+          </div>
+          <button
+            onClick={handleSaveSchedule}
+            disabled={savingSchedule}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+          >
+            {savingSchedule ? 'Salvando...' : 'Salvar Agenda'}
+          </button>
+        </div>
+
+        {/* Success/Error Messages for Schedule */}
+        {scheduleSuccess && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+            {scheduleSuccess}
+          </div>
+        )}
+        {scheduleError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {scheduleError}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {Object.entries(dayNames).map(([day, dayLabel]) => (
+            <div key={day} className="border border-zinc-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium text-zinc-900">{dayLabel}</span>
+                <button
+                  onClick={() => addTimeSlot(day)}
+                  className="text-sm px-3 py-1 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100 transition-colors"
+                >
+                  + Adicionar Horário
+                </button>
+              </div>
+              
+              {scheduleForm[day]?.length === 0 ? (
+                <p className="text-sm text-zinc-400 italic">Nenhum horário configurado</p>
+              ) : (
+                <div className="space-y-2">
+                  {scheduleForm[day]?.map((slot, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-zinc-600">Das</label>
+                        <input
+                          type="time"
+                          value={slot.start}
+                          onChange={(e) => updateTimeSlot(day, index, 'start', e.target.value)}
+                          className="px-2 py-1 border border-zinc-300 rounded text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-zinc-600">às</label>
+                        <input
+                          type="time"
+                          value={slot.end}
+                          onChange={(e) => updateTimeSlot(day, index, 'end', e.target.value)}
+                          className="px-2 py-1 border border-zinc-300 rounded text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={() => removeTimeSlot(day, index)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>

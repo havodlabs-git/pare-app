@@ -14,7 +14,7 @@ interface ModernDashboardProps {
   currentStreak: number;
   moduleName: string;
   moduleColor: string;
-  onReset: () => void;
+  onCheckIn: () => void;
   onRelapse: () => void;
 }
 
@@ -26,7 +26,7 @@ export function ModernDashboard({
   currentStreak,
   moduleName,
   moduleColor,
-  onReset,
+  onCheckIn,
   onRelapse,
 }: ModernDashboardProps) {
   const pointsToNextLevel = (level + 1) * 100;
@@ -238,7 +238,7 @@ export function ModernDashboard({
           Registrar Recaída
         </Button>
         <Button 
-          onClick={onReset} 
+          onClick={onCheckIn} 
           className="h-16 font-semibold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0"
           size="lg"
         >

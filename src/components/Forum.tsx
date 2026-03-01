@@ -4,10 +4,42 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
-import { MessageCircle, Send, Users, TrendingUp, Plus, Heart, ArrowLeft, X } from "lucide-react";
+import { MessageCircle, Send, Users, TrendingUp, Plus, Heart, ArrowLeft, X, Trash2, Pin } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { api } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import ReactMarkdown from "react-markdown";
+
+// Componente para renderizar Markdown com estilos bonitos
+const MarkdownContent = ({ content }: { content: string }) => (
+  <ReactMarkdown
+    components={{
+      h1: ({ children }) => <h1 className="text-2xl font-bold text-foreground mb-4 mt-6">{children}</h1>,
+      h2: ({ children }) => <h2 className="text-xl font-bold text-foreground mb-3 mt-5">{children}</h2>,
+      h3: ({ children }) => <h3 className="text-lg font-semibold text-foreground mb-2 mt-4">{children}</h3>,
+      p: ({ children }) => <p className="text-foreground mb-4 leading-relaxed">{children}</p>,
+      strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+      em: ({ children }) => <em className="italic text-muted-foreground">{children}</em>,
+      ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-2 ml-4">{children}</ul>,
+      ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-2 ml-4">{children}</ol>,
+      li: ({ children }) => <li className="text-foreground">{children}</li>,
+      blockquote: ({ children }) => (
+        <blockquote className="border-l-4 border-primary pl-4 py-2 my-4 bg-accent/30 rounded-r">
+          {children}
+        </blockquote>
+      ),
+      hr: () => <hr className="my-6 border-border" />,
+      a: ({ href, children }) => (
+        <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+          {children}
+        </a>
+      ),
+    }}
+  >
+    {content}
+  </ReactMarkdown>
+);
 
 interface Reply {
   id: string;
@@ -30,6 +62,7 @@ interface ForumPost {
   likedBy: string[];
   replies: Reply[];
   category: string;
+  isPinned?: boolean;
 }
 
 interface ForumStats {
@@ -59,11 +92,13 @@ const mapApiPost = (apiPost: any): ForumPost => {
       timestamp: r.createdAt || r.timestamp || new Date().toISOString(),
     })),
     category: apiPost.category === "general" ? "Geral" : apiPost.category || "Geral",
+    isPinned: apiPost.isPinned || false,
   };
 };
 
 export function Forum() {
   const toast = useToast();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [stats, setStats] = useState<ForumStats>({ totalMembers: 0, totalPosts: 0, successRate: 0 });
   const [loading, setLoading] = useState(true);
@@ -195,6 +230,29 @@ export function Forum() {
     }
   };
 
+  const handleDeletePost = async (postId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
+    if (!confirm("Tem certeza que deseja deletar este post? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+
+    try {
+      const response = await api.deletePost(postId);
+      if (response.success) {
+        toast.success("Post deletado com sucesso!");
+        setSelectedPost(null);
+        loadPosts();
+      } else {
+        toast.error(response.message || "Erro ao deletar post");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao deletar post");
+    }
+  };
+
   const openPostDetail = async (post: ForumPost) => {
     try {
       const response = await api.getPost(post.id);
@@ -267,8 +325,18 @@ export function Forum() {
                 </Badge>
               </div>
 
-              <h2 className="text-xl font-bold text-foreground mb-3">{selectedPost.title}</h2>
-              <p className="text-foreground mb-4 whitespace-pre-wrap">{selectedPost.content}</p>
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-xl font-bold text-foreground">{selectedPost.title}</h2>
+                {selectedPost.isPinned && (
+                  <Badge className="bg-amber-100 text-amber-700 text-xs flex items-center gap-1">
+                    <Pin className="w-3 h-3" />
+                    Fixado
+                  </Badge>
+                )}
+              </div>
+              <div className="prose prose-sm max-w-none">
+                <MarkdownContent content={selectedPost.content} />
+              </div>
 
               <div className="flex items-center gap-4 pt-4 border-t border-border">
                 <button 
@@ -281,6 +349,16 @@ export function Forum() {
                 <span className="text-sm text-muted-foreground">
                   {new Date(selectedPost.timestamp).toLocaleDateString('pt-BR')}
                 </span>
+                {user && selectedPost.authorId === user.id && (
+                  <button 
+                    onClick={() => handleDeletePost(selectedPost.id)}
+                    className="flex items-center gap-1.5 text-muted-foreground hover:text-red-500 transition-colors ml-auto"
+                    title="Deletar post"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    <span className="text-sm">Deletar</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -455,18 +533,28 @@ export function Forum() {
           {posts.map((post) => (
             <Card 
               key={post.id} 
-              className="p-5 bg-card border border-border cursor-pointer hover:border-primary/50 transition-colors"
+              className={`p-5 bg-card border cursor-pointer hover:border-primary/50 transition-colors ${
+                post.isPinned ? 'border-amber-300 bg-amber-50/30' : 'border-border'
+              }`}
               onClick={() => openPostDetail(post)}
             >
               <div className="flex gap-4">
                 <Avatar className="w-10 h-10 flex-shrink-0">
-                  <AvatarFallback className="bg-accent text-primary font-semibold text-sm">
-                    {post.author.split(" ").map(n => n[0]).join("").substring(0, 2)}
+                  <AvatarFallback className={`font-semibold text-sm ${
+                    post.isPinned ? 'bg-amber-100 text-amber-700' : 'bg-accent text-primary'
+                  }`}>
+                    {post.isPinned ? <Pin className="w-5 h-5" /> : post.author.split(" ").map(n => n[0]).join("").substring(0, 2)}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    {post.isPinned && (
+                      <Badge className="bg-amber-100 text-amber-700 text-xs flex items-center gap-1">
+                        <Pin className="w-3 h-3" />
+                        Fixado
+                      </Badge>
+                    )}
                     <span className="font-semibold text-foreground">{post.author}</span>
                     <span className="text-sm text-muted-foreground">Nível {post.authorLevel}</span>
                     <Badge className={`text-xs ${getCategoryStyle(post.category)}`}>
@@ -475,7 +563,11 @@ export function Forum() {
                   </div>
 
                   <h3 className="font-medium text-foreground mb-2">{post.title}</h3>
-                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{post.content}</p>
+                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+                    {/* Remove markdown formatting for preview */}
+                    {post.content.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6}\s/g, '').substring(0, 200)}
+                    {post.content.length > 200 ? '...' : ''}
+                  </p>
 
                   <div className="flex items-center gap-4">
                     <button 
@@ -492,6 +584,15 @@ export function Forum() {
                     <span className="text-sm text-muted-foreground ml-auto">
                       {new Date(post.timestamp).toLocaleDateString('pt-BR')}
                     </span>
+                    {user && post.authorId === user.id && (
+                      <button 
+                        onClick={(e) => handleDeletePost(post.id, e)}
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-red-500 transition-colors"
+                        title="Deletar post"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

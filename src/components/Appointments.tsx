@@ -27,7 +27,8 @@ interface Appointment {
   scheduledAt: string;
   duration: number;
   status: string;
-  zoomJoinUrl: string;
+  meetingUrl?: string;
+  zoomJoinUrl?: string; // Legacy field for backward compatibility
   notes: string;
 }
 
@@ -83,8 +84,14 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
   const loadMyAppointments = async () => {
     try {
       const response = await api.get('/appointments/my-appointments?upcoming=true');
+      console.log('[Appointments] Raw response:', response.data);
       if (response.data.success) {
-        setMyAppointments(response.data.data);
+        const appointments = response.data.data;
+        console.log('[Appointments] Loaded appointments:', appointments);
+        appointments.forEach((apt: Appointment, idx: number) => {
+          console.log(`[Appointment ${idx}] id=${apt.id}, status=${apt.status}, meetingUrl=${apt.meetingUrl}, zoomJoinUrl=${apt.zoomJoinUrl}`);
+        });
+        setMyAppointments(appointments);
       }
     } catch (error) {
       console.error('Error loading appointments:', error);
@@ -386,17 +393,23 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {appointment.status === 'scheduled' && (
+                    {(appointment.status === 'scheduled' || appointment.status === 'confirmed') && (
                       <>
-                        <a
-                          href={appointment.zoomJoinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-2"
-                        >
-                          <Video className="w-4 h-4" />
-                          Entrar
-                        </a>
+                        {(appointment.meetingUrl || appointment.zoomJoinUrl) ? (
+                          <a
+                            href={appointment.meetingUrl || appointment.zoomJoinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-2"
+                          >
+                            <Video className="w-4 h-4" />
+                            Entrar na Sessão
+                          </a>
+                        ) : (
+                          <span className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg text-sm">
+                            Link em preparação...
+                          </span>
+                        )}
                         <button
                           onClick={() => handleCancelAppointment(appointment.id)}
                           className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
@@ -413,6 +426,11 @@ const Appointments: React.FC<AppointmentsProps> = ({ userPlan, onUpgrade }) => {
                     {appointment.status === 'cancelled' && (
                       <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
                         Cancelada
+                      </span>
+                    )}
+                    {!['scheduled', 'confirmed', 'completed', 'cancelled'].includes(appointment.status) && (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                        {appointment.status || 'Pendente'}
                       </span>
                     )}
                   </div>

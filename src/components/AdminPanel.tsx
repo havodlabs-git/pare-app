@@ -45,11 +45,11 @@ interface Professional {
   bio: string;
   photoUrl: string;
   hourlyRate: number;
-  zoomEmail: string;
+  // Email removido - Jitsi Meet não precisa de configuração
   isActive: boolean;
 }
 
-type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'zoom';
+type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas';
 
 const AdminPanel: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -78,12 +78,10 @@ const AdminPanel: React.FC = () => {
   const [showProfessionalModal, setShowProfessionalModal] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
   const [professionalForm, setProfessionalForm] = useState({
-    name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0, zoomEmail: ''
+    name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0
   });
   
-  // Zoom
-  const [zoomConfig, setZoomConfig] = useState({ accountId: '', clientId: '', clientSecret: '' });
-  const [zoomConfigured, setZoomConfigured] = useState(false);
+  // Videochamadas - Jitsi Meet (não precisa de configuração)
 
   // Check if already logged in
   useEffect(() => {
@@ -147,9 +145,8 @@ const AdminPanel: React.FC = () => {
           const profsRes = await api.get('/admin/professionals');
           setProfessionals(profsRes.data.data.professionals);
           break;
-        case 'zoom':
-          const zoomRes = await api.get('/admin/zoom/config');
-          setZoomConfigured(zoomRes.data.data.configured);
+        case 'videochamadas':
+          // Jitsi Meet não precisa de configuração
           break;
       }
     } catch (err: any) {
@@ -193,6 +190,35 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // Modal para alterar plano
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newPlan, setNewPlan] = useState('free');
+  const [planDuration, setPlanDuration] = useState(1);
+
+  const openPlanModal = (user: User) => {
+    setSelectedUser(user);
+    setNewPlan(user.plan || 'free');
+    setPlanDuration(1);
+    setShowPlanModal(true);
+  };
+
+  const handleUpdateUserPlan = async () => {
+    if (!selectedUser) return;
+    try {
+      await api.put(`/admin/users/${selectedUser.id}/plan`, {
+        plan: newPlan,
+        duration: newPlan !== 'free' ? planDuration : null
+      });
+      setShowPlanModal(false);
+      setSelectedUser(null);
+      loadData();
+      alert(`Plano atualizado para ${newPlan.toUpperCase()} com sucesso!`);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao atualizar plano');
+    }
+  };
+
   // Post actions
   const handleDeletePost = async (postId: string) => {
     if (!confirm('Tem certeza que deseja excluir este post?')) return;
@@ -214,7 +240,7 @@ const AdminPanel: React.FC = () => {
       }
       setShowProfessionalModal(false);
       setEditingProfessional(null);
-      setProfessionalForm({ name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0, zoomEmail: '' });
+      setProfessionalForm({ name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0 });
       loadData();
     } catch (err: any) {
       alert(err.message || 'Erro ao salvar profissional');
@@ -232,7 +258,7 @@ const AdminPanel: React.FC = () => {
       bio: prof.bio || '',
       photoUrl: prof.photoUrl || '',
       hourlyRate: prof.hourlyRate || 0,
-      zoomEmail: prof.zoomEmail || ''
+
     });
     setShowProfessionalModal(true);
   };
@@ -256,23 +282,14 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Zoom config
-  const handleSaveZoomConfig = async () => {
-    try {
-      await api.post('/admin/zoom/config', zoomConfig);
-      alert('Configuração do Zoom salva com sucesso!');
-      setZoomConfigured(true);
-    } catch (err) {
-      alert('Erro ao salvar configuração do Zoom');
-    }
-  };
+
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'users', label: 'Usuários', icon: Users },
     { id: 'posts', label: 'Posts', icon: MessageSquare },
     { id: 'professionals', label: 'Psicólogos', icon: UserCheck },
-    { id: 'zoom', label: 'Zoom', icon: Video },
+    { id: 'videochamadas', label: 'Videochamadas', icon: Video },
   ];
 
   // Login screen
@@ -524,6 +541,9 @@ const AdminPanel: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
+                              <button onClick={() => openPlanModal(user)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Alterar Plano">
+                                <Edit className="w-4 h-4" />
+                              </button>
                               {user.isBanned ? (
                                 <button onClick={() => handleUnbanUser(user.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Desbanir">
                                   <CheckCircle className="w-4 h-4" />
@@ -606,7 +626,7 @@ const AdminPanel: React.FC = () => {
                   <button
                     onClick={() => {
                       setEditingProfessional(null);
-                      setProfessionalForm({ name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0, zoomEmail: '' });
+                      setProfessionalForm({ name: '', email: '', password: '', specialty: '', crp: '', bio: '', photoUrl: '', hourlyRate: 0 });
                       setShowProfessionalModal(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -733,15 +753,7 @@ const AdminPanel: React.FC = () => {
                             className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-zinc-700 mb-1">Email do Zoom</label>
-                          <input
-                            type="email"
-                            value={professionalForm.zoomEmail}
-                            onChange={(e) => setProfessionalForm({ ...professionalForm, zoomEmail: e.target.value })}
-                            className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
+
                         <div>
                           <label className="block text-sm font-medium text-zinc-700 mb-1">Bio</label>
                           <textarea
@@ -773,67 +785,58 @@ const AdminPanel: React.FC = () => {
               </div>
             )}
 
-            {/* Zoom Config */}
-            {activeTab === 'zoom' && (
+            {/* Videochamadas - Jitsi Meet */}
+            {activeTab === 'videochamadas' && (
               <div>
-                <h2 className="text-2xl font-bold text-zinc-900 mb-6">Configuração do Zoom</h2>
+                <h2 className="text-2xl font-bold text-zinc-900 mb-6">Videochamadas</h2>
                 
                 <div className="bg-white rounded-xl border border-zinc-200 p-6 max-w-xl">
-                  {zoomConfigured && (
-                    <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-6 flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5" />
-                      Zoom configurado e funcionando
-                    </div>
-                  )}
+                  <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-6 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Sistema de videochamadas ativo e funcionando
+                  </div>
                   
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">Account ID</label>
-                      <input
-                        type="text"
-                        value={zoomConfig.accountId}
-                        onChange={(e) => setZoomConfig({ ...zoomConfig, accountId: e.target.value })}
-                        placeholder="Seu Account ID do Zoom"
-                        className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">Client ID</label>
-                      <input
-                        type="text"
-                        value={zoomConfig.clientId}
-                        onChange={(e) => setZoomConfig({ ...zoomConfig, clientId: e.target.value })}
-                        placeholder="Seu Client ID do Zoom"
-                        className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">Client Secret</label>
-                      <input
-                        type="password"
-                        value={zoomConfig.clientSecret}
-                        onChange={(e) => setZoomConfig({ ...zoomConfig, clientSecret: e.target.value })}
-                        placeholder="Seu Client Secret do Zoom"
-                        className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+                    <div className="bg-indigo-50 rounded-lg p-4">
+                      <h4 className="font-medium text-indigo-900 mb-2 flex items-center gap-2">
+                        <Video className="w-5 h-5" />
+                        Jitsi Meet (8x8.vc)
+                      </h4>
+                      <p className="text-sm text-indigo-700">
+                        O sistema utiliza Jitsi Meet para videochamadas, uma solução open source e gratuita.
+                      </p>
                     </div>
 
-                    <div className="bg-zinc-50 rounded-lg p-4 mt-4">
-                      <h4 className="font-medium text-zinc-900 mb-2">Como obter as credenciais:</h4>
-                      <ol className="text-sm text-zinc-600 space-y-1 list-decimal list-inside">
-                        <li>Acesse <a href="https://marketplace.zoom.us" target="_blank" rel="noopener" className="text-indigo-600 hover:underline">marketplace.zoom.us</a></li>
-                        <li>Crie um app do tipo "Server-to-Server OAuth"</li>
-                        <li>Copie o Account ID, Client ID e Client Secret</li>
-                        <li>Ative os escopos: meeting:write, user:read</li>
-                      </ol>
+                    <div className="bg-zinc-50 rounded-lg p-4">
+                      <h4 className="font-medium text-zinc-900 mb-2">Características:</h4>
+                      <ul className="text-sm text-zinc-600 space-y-2">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          Sem necessidade de configuração ou API keys
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          Salas criadas automaticamente para cada sessão
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          Funciona em qualquer navegador
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          Criptografia de ponta a ponta
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          100% gratuito e sem limites
+                        </li>
+                      </ul>
                     </div>
 
-                    <button
-                      onClick={handleSaveZoomConfig}
-                      className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors mt-4"
-                    >
-                      Salvar Configuração
-                    </button>
+                    <div className="text-sm text-zinc-500 mt-4">
+                      As salas de videochamada são geradas automaticamente quando um agendamento é confirmado.
+                      Os links são enviados tanto para o usuário quanto para o psicólogo.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -841,6 +844,83 @@ const AdminPanel: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Modal de Alteração de Plano */}
+      {showPlanModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-zinc-900">Alterar Plano do Usuário</h3>
+              <button onClick={() => setShowPlanModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-zinc-50 rounded-lg p-4">
+                <p className="text-sm text-zinc-500">Usuário</p>
+                <p className="font-medium text-zinc-900">{selectedUser.name}</p>
+                <p className="text-sm text-zinc-500">{selectedUser.email}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Novo Plano</label>
+                <select
+                  value={newPlan}
+                  onChange={(e) => setNewPlan(e.target.value)}
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="free">Free (Gratuito)</option>
+                  <option value="premium">Premium (R$ 19,90/mês)</option>
+                  <option value="elite">Elite (R$ 99,90/mês)</option>
+                </select>
+              </div>
+
+              {newPlan !== 'free' && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">Duração (meses)</label>
+                  <select
+                    value={planDuration}
+                    onChange={(e) => setPlanDuration(parseInt(e.target.value))}
+                    className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value={1}>1 mês</option>
+                    <option value={3}>3 meses</option>
+                    <option value={6}>6 meses</option>
+                    <option value={12}>12 meses (1 ano)</option>
+                    <option value={24}>24 meses (2 anos)</option>
+                    <option value={120}>120 meses (Vitalício)</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="bg-indigo-50 rounded-lg p-4">
+                <p className="text-sm text-indigo-700">
+                  {newPlan === 'free' 
+                    ? 'O plano será alterado para Free imediatamente.'
+                    : `O plano ${newPlan.toUpperCase()} será ativado por ${planDuration} ${planDuration === 1 ? 'mês' : 'meses'}.`
+                  }
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowPlanModal(false)}
+                  className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleUpdateUserPlan}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Confirmar Alteração
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,6 +3,13 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Check, Zap, Crown, Sparkles, Lock, Video } from "lucide-react";
+// Stripe Payment Links (Produção - Live Mode)
+const STRIPE_PAYMENT_LINKS = {
+  premium_monthly: 'https://buy.stripe.com/8x2eVdelWbcl0Pm6yPeAg00',
+  premium_yearly: 'https://buy.stripe.com/9B6aEX5Pq0xH1Tqf5leAg01',
+  elite_monthly: 'https://buy.stripe.com/cNidR9b9K1BLapWcXdeAg02',
+  elite_yearly: 'https://buy.stripe.com/7sY8wP0v6a8h9lS6yPeAg03',
+};
 
 interface PricingPlansProps {
   currentPlan?: "free" | "premium" | "elite";
@@ -11,6 +18,7 @@ interface PricingPlansProps {
 
 export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlansProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  
 
   const plans = [
     {
@@ -60,8 +68,8 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
     {
       id: "elite" as const,
       name: "Elite",
-      priceMonthly: 39.90,
-      priceYearly: 399.00,
+      priceMonthly: 99.90,
+      priceYearly: 999.00,
       period: billingCycle === "monthly" ? "/mês" : "/ano",
       description: "Transformação completa",
       icon: <Crown className="w-8 h-8" />,
@@ -75,7 +83,7 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
         { text: "Badge exclusivo Elite", included: true },
         { text: "Acesso a grupo VIP", included: true },
         { text: "Suporte prioritário 24/7", included: true },
-        { text: "Sessões com psicólogos via Zoom", included: true, highlight: true },
+        { text: "Sessões com psicólogos", included: true, highlight: true },
       ],
       popular: false,
     },
@@ -210,8 +218,19 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
               </ul>
 
               {/* CTA Button */}
-              <Button
-                onClick={() => onSelectPlan?.(plan.id)}
+                <Button
+                onClick={() => {
+                  if (plan.id === "free") {
+                    onSelectPlan?.(plan.id);
+                  } else {
+                    // Redirecionar diretamente para Stripe
+                    const paymentKey = `${plan.id}_${billingCycle}` as keyof typeof STRIPE_PAYMENT_LINKS;
+                    const stripeLink = STRIPE_PAYMENT_LINKS[paymentKey];
+                    if (stripeLink) {
+                      window.location.href = stripeLink;
+                    }
+                  }
+                }}
                 disabled={currentPlan === plan.id}
                 className={`w-full h-12 ${
                   plan.popular
@@ -241,7 +260,7 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
           <div>
             <h4 className="text-lg font-bold text-amber-900">Sessões com Psicólogos - Exclusivo Elite</h4>
             <p className="text-amber-700 mt-1">
-              Agende sessões de acompanhamento via Zoom com psicólogos especializados em dependências comportamentais. 
+              Agende sessões de acompanhamento com psicólogos especializados em dependências comportamentais. 
               Receba orientação profissional personalizada para sua jornada de recuperação.
             </p>
           </div>
@@ -262,7 +281,7 @@ export function PricingPlans({ currentPlan = "free", onSelectPlan }: PricingPlan
         <Card className="p-6">
           <h4 className="font-semibold mb-2">💳 Quais formas de pagamento?</h4>
           <p className="text-gray-600">
-            Aceitamos Google Pay, cartão de crédito e PIX. Pagamentos processados com total segurança.
+            Aceitamos cartão de crédito (Visa, Mastercard, Elo, American Express). Pagamentos processados com total segurança via Stripe.
           </p>
         </Card>
 

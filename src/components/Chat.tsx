@@ -49,6 +49,7 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
   const [showProfessionalList, setShowProfessionalList] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
+  const currentConversationRef = useRef<string | null>(null);
 
   const isPremium = ['premium', 'elite'].includes(userPlan?.toLowerCase());
 
@@ -60,16 +61,32 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
   }, [isPremium]);
 
   useEffect(() => {
+    // Limpar mensagens ao trocar de conversa
+    setMessages([]);
+    
     if (selectedConversation) {
-      loadMessages(selectedConversation.id);
+      const currentConversationId = selectedConversation.id;
+      // Atualizar ref para verificação de conversa atual
+      currentConversationRef.current = currentConversationId;
+      
+      // Carregar mensagens da conversa selecionada
+      loadMessages(currentConversationId);
+      
       // Poll for new messages every 3 seconds
       pollInterval.current = setInterval(() => {
-        loadMessages(selectedConversation.id, true);
+        // Verificar se ainda é a mesma conversa antes de atualizar
+        if (currentConversationRef.current === currentConversationId) {
+          loadMessages(currentConversationId, true);
+        }
       }, 3000);
+    } else {
+      currentConversationRef.current = null;
     }
+    
     return () => {
       if (pollInterval.current) {
         clearInterval(pollInterval.current);
+        pollInterval.current = null;
       }
     };
   }, [selectedConversation?.id]);
@@ -84,12 +101,16 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
 
   const loadConversations = async () => {
     try {
+      console.log('[Chat] Carregando conversas...');
       const response = await api.get('/chat/conversations');
+      console.log('[Chat] Resposta conversas:', response);
       if (response.data?.success) {
         setConversations(response.data.data || []);
+      } else {
+        console.error('[Chat] Erro na resposta:', response.data?.message);
       }
-    } catch (error) {
-      console.error('Erro ao carregar conversas:', error);
+    } catch (error: any) {
+      console.error('[Chat] Erro ao carregar conversas:', error.message || error);
     } finally {
       setLoading(false);
     }
@@ -97,23 +118,37 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
 
   const loadProfessionals = async () => {
     try {
+      console.log('[Chat] Carregando profissionais...');
       const response = await api.get('/chat/professionals');
+      console.log('[Chat] Resposta profissionais:', response);
       if (response.data?.success) {
         setProfessionals(response.data.data || []);
+      } else {
+        console.error('[Chat] Erro na resposta profissionais:', response.data?.message);
       }
-    } catch (error) {
-      console.error('Erro ao carregar profissionais:', error);
+    } catch (error: any) {
+      console.error('[Chat] Erro ao carregar profissionais:', error.message || error);
     }
   };
 
   const loadMessages = async (conversationId: string, silent = false) => {
     try {
+      if (!silent) console.log('[Chat] Carregando mensagens para conversa:', conversationId);
       const response = await api.get(`/chat/conversations/${conversationId}/messages`);
+      if (!silent) console.log('[Chat] Resposta mensagens:', response);
       if (response.data?.success) {
-        setMessages(response.data.data || []);
+        // Backend já retorna em ordem cronológica, não precisa reverter
+        const msgs = response.data.data || [];
+        // Só atualizar se ainda for a mesma conversa selecionada (usando ref para evitar closure stale)
+        if (currentConversationRef.current === conversationId) {
+          console.log('[Chat] Atualizando mensagens:', msgs.length, 'mensagens');
+          setMessages(msgs);
+        }
+      } else {
+        if (!silent) console.error('[Chat] Erro na resposta mensagens:', response.data?.message);
       }
-    } catch (error) {
-      if (!silent) console.error('Erro ao carregar mensagens:', error);
+    } catch (error: any) {
+      if (!silent) console.error('[Chat] Erro ao carregar mensagens:', error.message || error);
     }
   };
 
@@ -156,14 +191,16 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
     setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      await api.post('/chat/messages', {
+      console.log('[Chat] Enviando mensagem para conversa:', selectedConversation.id);
+      const sendResponse = await api.post('/chat/messages', {
         conversationId: selectedConversation.id,
         content: messageContent
       });
+      console.log('[Chat] Resposta envio:', sendResponse);
       await loadMessages(selectedConversation.id, true);
       await loadConversations();
-    } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+    } catch (error: any) {
+      console.error('[Chat] Erro ao enviar mensagem:', error.message || error);
       // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       setNewMessage(messageContent);
@@ -413,9 +450,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     height: '100%',
     minHeight: '500px',
+    maxHeight: '80vh',
     backgroundColor: '#f5f5f5',
     borderRadius: '12px',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    position: 'relative'
   },
   // Premium Gate
   premiumGate: {
@@ -606,7 +645,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    position: 'relative'
   },
   chatHeader: {
     padding: '16px',
@@ -629,8 +670,11 @@ const styles: { [key: string]: React.CSSProperties } = {
   messagesContainer: {
     flex: 1,
     overflowY: 'auto',
+    overflowX: 'hidden',
     padding: '16px',
-    backgroundColor: '#f9f9f9'
+    backgroundColor: '#f9f9f9',
+    display: 'flex',
+    flexDirection: 'column'
   },
   dateDivider: {
     textAlign: 'center',
