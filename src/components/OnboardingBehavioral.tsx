@@ -38,13 +38,13 @@ interface OnboardingBehavioralProps {
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 const ADDICTIONS = [
-  { id: "pornography",            label: "Pornografia",             icon: Eye,          emoji: "🔞" },
-  { id: "compulsive_masturbation",label: "Masturbação compulsiva",  icon: Hand,         emoji: "🚫" },
-  { id: "alcohol",                label: "Álcool",                  icon: Wine,         emoji: "🍷" },
-  { id: "smoking",                label: "Tabagismo",               icon: Cigarette,    emoji: "🚬" },
-  { id: "social_media",           label: "Redes sociais",           icon: Smartphone,   emoji: "📱" },
-  { id: "compulsive_eating",      label: "Alimentação compulsiva",  icon: Utensils,     emoji: "🍔" },
-  { id: "shopping",               label: "Compras compulsivas",     icon: ShoppingCart, emoji: "🛒" },
+  { id: "pornography",            label: "Pornografia",             img: "/icons/onboarding/habit-porn.png",     emoji: "🔞" },
+  { id: "compulsive_masturbation",label: "Masturbação compulsiva",  img: "/icons/onboarding/habit-porn.png",     emoji: "🚫" },
+  { id: "alcohol",                label: "Álcool",                  img: "/icons/onboarding/habit-alcohol.png",  emoji: "🍷" },
+  { id: "smoking",                label: "Tabagismo",               img: "/icons/onboarding/habit-smoking.png",  emoji: "🚬" },
+  { id: "social_media",           label: "Redes sociais",           img: "/icons/onboarding/habit-social.png",   emoji: "📱" },
+  { id: "compulsive_eating",      label: "Alimentação compulsiva",  img: "/icons/onboarding/habit-food.png",     emoji: "🍔" },
+  { id: "shopping",               label: "Compras compulsivas",     img: "/icons/onboarding/habit-shopping.png", emoji: "🛒" },
 ];
 
 const INTENSITY_LABELS: Record<number, { label: string; color: string }> = {
@@ -73,26 +73,26 @@ const POST_EMOTIONS = [
 ];
 
 const INTERESTS = [
-  { label: "Lutas",          emoji: "🥊" },
-  { label: "Academia",       emoji: "💪" },
-  { label: "Bicicleta",      emoji: "🚴" },
-  { label: "Leitura",        emoji: "📚" },
-  { label: "Música",         emoji: "🎵" },
-  { label: "Esportes",       emoji: "⚽" },
-  { label: "Espiritualidade",emoji: "🧘" },
-  { label: "Tecnologia",     emoji: "💻" },
-  { label: "Artes",          emoji: "🎨" },
+  { label: "Academia",        img: "/icons/onboarding/interest-gym.png",        emoji: "💪" },
+  { label: "Leitura",         img: "/icons/onboarding/interest-reading.png",    emoji: "📚" },
+  { label: "Música",          img: "/icons/onboarding/interest-music.png",      emoji: "🎵" },
+  { label: "Meditação",       img: "/icons/onboarding/interest-meditation.png", emoji: "🧘" },
+  { label: "Artes",           img: "/icons/onboarding/interest-art.png",        emoji: "🎨" },
+  { label: "Esportes",        img: "/icons/onboarding/interest-sports.png",     emoji: "⚽" },
+  { label: "Culinária",       img: "/icons/onboarding/interest-cooking.png",    emoji: "🍳" },
+  { label: "Natureza",        img: "/icons/onboarding/interest-nature.png",     emoji: "🌿" },
+  { label: "Voluntariado",    img: "/icons/onboarding/interest-volunteer.png",  emoji: "🤝" },
 ];
 
 const STEP_CONFIG = [
-  { title: "Privacidade",     subtitle: "Seus dados são protegidos",          icon: Shield,    gradient: "from-violet-600 to-purple-700"  },
-  { title: "Conexão",         subtitle: "Vamos nos conhecer",                 icon: User,      gradient: "from-blue-600 to-cyan-600"       },
-  { title: "Desafio",         subtitle: "O que você quer transformar",        icon: Target,    gradient: "from-rose-600 to-pink-600"       },
-  { title: "Intensidade",     subtitle: "Com que frequência acontece",        icon: Zap,       gradient: "from-orange-500 to-red-600"      },
-  { title: "Gatilhos",        subtitle: "Quando isso costuma acontecer",      icon: Heart,     gradient: "from-pink-600 to-rose-600"       },
-  { title: "Interesses",      subtitle: "O que te fortalece",                 icon: Lightbulb, gradient: "from-emerald-600 to-teal-600"    },
-  { title: "Disponibilidade", subtitle: "Sua rotina real",                    icon: Clock,     gradient: "from-cyan-600 to-blue-600"       },
-  { title: "Visão de Futuro", subtitle: "Como será sua vida em 6 meses",      icon: Star,      gradient: "from-amber-500 to-orange-600"    },
+  { title: "Privacidade",     subtitle: "Seus dados são protegidos",          img: "/icons/onboarding/step1-privacy.png",      icon: Shield,    gradient: "from-violet-600 to-purple-700"  },
+  { title: "Conexão",         subtitle: "Vamos nos conhecer",                 img: "/icons/onboarding/step2-connection.png",   icon: User,      gradient: "from-blue-600 to-cyan-600"       },
+  { title: "Desafio",         subtitle: "O que você quer transformar",        img: "/icons/onboarding/step3-challenge.png",    icon: Target,    gradient: "from-rose-600 to-pink-600"       },
+  { title: "Intensidade",     subtitle: "Com que frequência acontece",        img: "/icons/onboarding/step4-intensity.png",    icon: Zap,       gradient: "from-orange-500 to-red-600"      },
+  { title: "Gatilhos",        subtitle: "Quando isso costuma acontecer",      img: "/icons/onboarding/step5-triggers.png",     icon: Heart,     gradient: "from-pink-600 to-rose-600"       },
+  { title: "Interesses",      subtitle: "O que te fortalece",                 img: "/icons/onboarding/step6-interests.png",    icon: Lightbulb, gradient: "from-emerald-600 to-teal-600"    },
+  { title: "Disponibilidade", subtitle: "Sua rotina real",                    img: "/icons/onboarding/step7-availability.png", icon: Clock,     gradient: "from-cyan-600 to-blue-600"       },
+  { title: "Visão de Futuro", subtitle: "Como será sua vida em 6 meses",      img: "/icons/onboarding/step8-vision.png",       icon: Star,      gradient: "from-amber-500 to-orange-600"    },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -165,7 +165,6 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
 
   const progress = ((step - 1) / TOTAL_STEPS) * 100;
   const cfg = STEP_CONFIG[step - 1];
-  const StepIcon = cfg.icon;
 
   const canAdvance = (): boolean => {
     switch (step) {
@@ -384,7 +383,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                       if (!updated.includes(primaryAddiction)) setPrimaryAddiction("");
                     }}
                   >
-                    <span className="text-lg leading-none">{a.emoji}</span>
+                    <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
                     <span className="font-medium text-sm">{a.label}</span>
                   </SelectChip>
                 );
@@ -406,7 +405,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                         color="amber"
                         onClick={() => setPrimaryAddiction(id)}
                       >
-                        <span className="text-lg leading-none">{a.emoji}</span>
+                        <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
                         <span className="font-medium text-sm">{a.label}</span>
                         {primaryAddiction === id && (
                           <Badge className="ml-auto bg-amber-500/80 text-white border-0 text-xs px-2">
@@ -432,7 +431,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
               return (
                 <div key={id} className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{a.emoji}</span>
+                    <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
                     <span className="text-sm font-semibold text-white">{a.label}</span>
                   </div>
                   <div className="grid grid-cols-5 gap-2">
@@ -527,7 +526,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                         : "border-white/10 bg-white/5 text-gray-400 hover:border-white/25 hover:bg-white/10"
                     }`}
                   >
-                    <span className="text-2xl">{i.emoji}</span>
+                    <img src={i.img} alt={i.label} className="w-10 h-10 object-contain" />
                     <span className="text-xs font-medium text-center leading-tight">{i.label}</span>
                     {selected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
                   </button>
@@ -663,8 +662,8 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
         <div className="mb-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-xl bg-gradient-to-br ${cfg.gradient} flex items-center justify-center shadow-lg`}>
-                <StepIcon className="w-3.5 h-3.5 text-white" />
+              <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${cfg.gradient} flex items-center justify-center shadow-lg overflow-hidden`}>
+                <img src={cfg.img} alt={cfg.title} className="w-6 h-6 object-contain" />
               </div>
               <div>
                 <p className="text-xs font-bold text-white leading-none">{cfg.title}</p>
