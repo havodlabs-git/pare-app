@@ -2,7 +2,7 @@
 
 Aplicativo de celular, extensão do navegador e executável Windows que ajuda você a controlar seus vícios.
 
-## 🎯 Objetivo
+##  🎯 Objetivo
 
 Inicialmente focado no controle de pornografia, o aplicativo redireciona o usuário quando ele tenta acessar sites pornográficos, levando-o para uma plataforma com instruções e motivação para parar de ver pornografia.
 
