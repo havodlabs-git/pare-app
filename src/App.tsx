@@ -40,6 +40,14 @@ import { ProgressTab } from "./components/ProgressTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+// Registo de recaída independente (separado dos hábitos)
+export interface RelapseLog {
+  id: string;
+  date: string;       // ISO string do momento do registo
+  dateKey: string;    // YYYY-MM-DD — chave do dia
+  note?: string;      // nota opcional
+}
+
 interface ModuleData {
   moduleId: string;
   startDate: string;
@@ -65,6 +73,7 @@ interface UserProfile {
   weeklySchedule?: ScheduledHabit[];
   currentSeason?: Season;
   habitLogs?: HabitLog[];
+  relapseLogs?: RelapseLog[];   // recaídas independentes (1 por dia)
   achievements?: Achievement[];
 
   // Controle do fluxo de onboarding
@@ -319,9 +328,26 @@ export default function App() {
     else if (status === "skipped") toast.info("Hábito pulado. Amanhã é um novo dia.");
   };
 
-  const handleRegisterRelapse = (habitId: string) => {
-    handleLogHabit(habitId, "relapse");
-    toast.info("Recaída registrada. Reconhecer é o primeiro passo. Continue!");
+  const handleRegisterRelapse = (_habitId?: string) => {
+    if (!userProfile || !currentUser) return;
+    const todayKey = new Date().toISOString().split("T")[0];
+    const existing = (userProfile.relapseLogs || []).find((r) => r.dateKey === todayKey);
+    if (existing) {
+      toast.info("Já registaste uma recaída hoje. Amnhã é um novo dia!");
+      return;
+    }
+    const newRelapse: RelapseLog = {
+      id: `relapse_${Date.now()}`,
+      date: new Date().toISOString(),
+      dateKey: todayKey,
+    };
+    const updated: UserProfile = {
+      ...userProfile,
+      relapseLogs: [...(userProfile.relapseLogs || []), newRelapse],
+    };
+    setUserProfile(updated);
+    localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(updated));
+    toast.info("⚠️ Recaída registada. Reconhecer é o primeiro passo. Continue!");
   };
 
   // ── Handlers de Perfil e Configurações ──────────────────────────────────
@@ -631,6 +657,7 @@ export default function App() {
                   season={userProfile.currentSeason!}
                   profile={userProfile.behavioralProfile!}
                   logs={userProfile.habitLogs || []}
+                  relapseLogs={userProfile.relapseLogs || []}
                   points={behavioralPoints}
                   achievements={userProfile.achievements || ACHIEVEMENTS_DEFINITIONS}
                   onLogHabit={handleLogHabit}
@@ -660,6 +687,7 @@ export default function App() {
                   season={userProfile.currentSeason!}
                   profile={userProfile.behavioralProfile!}
                   logs={userProfile.habitLogs || []}
+                  relapseLogs={userProfile.relapseLogs || []}
                   onLogHabit={handleLogHabit}
                   onRegisterRelapse={handleRegisterRelapse}
                 />

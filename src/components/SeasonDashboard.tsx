@@ -43,10 +43,11 @@ interface SeasonDashboardProps {
   season: Season;
   profile: BehavioralProfile;
   logs: HabitLog[];
+  relapseLogs?: import("../App").RelapseLog[];
   points: UserPoints;
   achievements: Achievement[];
   onLogHabit: (habitId: string, status: HabitStatus) => void;
-  onRegisterRelapse: (habitId: string) => void;
+  onRegisterRelapse: (habitId?: string) => void;
   onViewForum: () => void;
   onViewStats: () => void;
 }
@@ -115,6 +116,7 @@ export function SeasonDashboard({
   season,
   profile,
   logs,
+  relapseLogs = [],
   points,
   achievements,
   onLogHabit,
@@ -144,8 +146,18 @@ export function SeasonDashboard({
   const daysRemaining = Math.max(0, totalDays - elapsedDays);
 
   const totalDone = logs.filter((l) => l.status === "done").length;
-  const totalRelapses = logs.filter((l) => l.status === "relapse").length;
-  const cleanStreak = getMaxCleanStreak(logs);
+  // Recaídas vêm do relapseLogs independente (1 por dia)
+  const totalRelapses = relapseLogs.length;
+  // Dias limpos = dias com pelo menos 1 hábito feito E sem recaída registada
+  const cleanStreak = (() => {
+    const doneDates = new Set(logs.filter((l) => l.status === "done").map((l) => l.date.split("T")[0]));
+    const relapseDates = new Set(relapseLogs.map((r) => r.dateKey));
+    let streak = 0, maxStreak = 0;
+    for (const date of Array.from(doneDates).sort()) {
+      if (relapseDates.has(date)) { streak = 0; } else { streak++; maxStreak = Math.max(maxStreak, streak); }
+    }
+    return maxStreak;
+  })();
 
   const currentLevelData = LEVELS.find((l) => l.level === points.currentLevel) || LEVELS[0];
   const nextLevelData = LEVELS.find((l) => l.level === points.currentLevel + 1);
