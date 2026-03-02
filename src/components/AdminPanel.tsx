@@ -19,6 +19,9 @@ interface User {
   name: string;
   email: string;
   plan: string;
+  role?: string;
+  isAdmin?: boolean;
+  isPsychologist?: boolean;
   streak: number;
   points: number;
   level: number;
@@ -220,32 +223,55 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Modal para alterar plano
+  // Modal para alterar plano/role
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newPlan, setNewPlan] = useState('free');
   const [planDuration, setPlanDuration] = useState(1);
+  const [newRole, setNewRole] = useState('user'); // 'user' | 'admin' | 'psychologist'
 
   const openPlanModal = (user: User) => {
     setSelectedUser(user);
     setNewPlan(user.plan || 'free');
     setPlanDuration(1);
+    // Detectar role actual
+    if (user.isAdmin) setNewRole('admin');
+    else if (user.isPsychologist) setNewRole('psychologist');
+    else setNewRole('user');
     setShowPlanModal(true);
   };
 
   const handleUpdateUserPlan = async () => {
     if (!selectedUser) return;
     try {
-      await api.put(`/admin/users/${selectedUser.id}/plan`, {
-        plan: newPlan,
-        duration: newPlan !== 'free' ? planDuration : null
-      });
+      if (newRole === 'admin') {
+        // Admin: actualizar role (inclui plan elite automaticamente)
+        await api.put(`/admin/users/${selectedUser.id}/role`, { role: 'admin' });
+        alert('Role atualizada para Admin com sucesso! O utilizador tem agora acesso Elite, painel de psicólogo e painel admin.');
+      } else if (newRole === 'psychologist') {
+        await api.put(`/admin/users/${selectedUser.id}/role`, { role: 'psychologist' });
+        // Actualizar plano separadamente se necessário
+        if (newPlan !== (selectedUser.plan || 'free')) {
+          await api.put(`/admin/users/${selectedUser.id}/plan`, {
+            plan: newPlan,
+            duration: newPlan !== 'free' ? planDuration : null
+          });
+        }
+        alert('Role atualizada para Psicólogo com sucesso!');
+      } else {
+        // user normal: remover roles e actualizar plano
+        await api.put(`/admin/users/${selectedUser.id}/role`, { role: 'user' });
+        await api.put(`/admin/users/${selectedUser.id}/plan`, {
+          plan: newPlan,
+          duration: newPlan !== 'free' ? planDuration : null
+        });
+        alert(`Plano atualizado para ${newPlan.toUpperCase()} com sucesso!`);
+      }
       setShowPlanModal(false);
       setSelectedUser(null);
       loadData();
-      alert(`Plano atualizado para ${newPlan.toUpperCase()} com sucesso!`);
     } catch (err: any) {
-      alert(err.message || 'Erro ao atualizar plano');
+      alert(err.message || 'Erro ao atualizar plano/role');
     }
   };
 
@@ -665,7 +691,7 @@ const AdminPanel: React.FC = () => {
                     <thead className="bg-zinc-50">
                       <tr>
                         <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Usuário</th>
-                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Plano</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Plano / Role</th>
                         <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Streak</th>
                         <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Pontos</th>
                         <th className="text-left px-6 py-3 text-xs font-medium text-zinc-500 uppercase">Status</th>
@@ -682,13 +708,21 @@ const AdminPanel: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              user.plan === 'elite' ? 'bg-purple-100 text-purple-700' :
-                              user.plan === 'premium' ? 'bg-indigo-100 text-indigo-700' :
-                              'bg-zinc-100 text-zinc-700'
-                            }`}>
-                              {user.plan || 'free'}
-                            </span>
+                            <div className="flex flex-col gap-1">
+                              {user.isAdmin ? (
+                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700 w-fit">Admin</span>
+                              ) : user.isPsychologist ? (
+                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-teal-100 text-teal-700 w-fit">Psicólogo</span>
+                              ) : null}
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full w-fit ${
+                                user.isAdmin ? 'bg-red-50 text-red-600' :
+                                user.plan === 'elite' ? 'bg-purple-100 text-purple-700' :
+                                user.plan === 'premium' ? 'bg-indigo-100 text-indigo-700' :
+                                'bg-zinc-100 text-zinc-700'
+                              }`}>
+                                {user.isAdmin ? 'elite (admin)' : (user.plan || 'free')}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-zinc-600">{user.streak || 0} dias</td>
                           <td className="px-6 py-4 text-zinc-600">{user.points || 0}</td>
@@ -1426,12 +1460,12 @@ const AdminPanel: React.FC = () => {
         )}
       </div>
 
-      {/* Modal de Alteração de Plano */}
+      {/* Modal de Alteração de Plano / Role */}
       {showPlanModal && selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-zinc-900">Alterar Plano do Usuário</h3>
+              <h3 className="text-lg font-semibold text-zinc-900">Alterar Plano / Role</h3>
               <button onClick={() => setShowPlanModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
@@ -1442,47 +1476,107 @@ const AdminPanel: React.FC = () => {
                 <p className="text-sm text-zinc-500">Usuário</p>
                 <p className="font-medium text-zinc-900">{selectedUser.name}</p>
                 <p className="text-sm text-zinc-500">{selectedUser.email}</p>
+                <div className="flex gap-2 mt-2">
+                  {selectedUser.isAdmin && <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">Admin</span>}
+                  {selectedUser.isPsychologist && !selectedUser.isAdmin && <span className="px-2 py-0.5 text-xs rounded-full bg-teal-100 text-teal-700">Psicólogo</span>}
+                  <span className="px-2 py-0.5 text-xs rounded-full bg-zinc-200 text-zinc-600">{selectedUser.plan || 'free'}</span>
+                </div>
               </div>
 
+              {/* Role */}
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Novo Plano</label>
-                <select
-                  value={newPlan}
-                  onChange={(e) => setNewPlan(e.target.value)}
-                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="free">Free (Gratuito)</option>
-                  <option value="premium">Premium (R$ 19,90/mês)</option>
-                  <option value="elite">Elite (R$ 99,90/mês)</option>
-                </select>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Role do Utilizador</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setNewRole('user')}
+                    className={`p-3 rounded-lg border-2 text-center transition-all ${
+                      newRole === 'user' ? 'border-indigo-500 bg-indigo-50' : 'border-zinc-200 hover:border-zinc-300'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">👤</div>
+                    <div className="text-xs font-medium">Utilizador</div>
+                    <div className="text-xs text-zinc-500">Normal</div>
+                  </button>
+                  <button
+                    onClick={() => setNewRole('psychologist')}
+                    className={`p-3 rounded-lg border-2 text-center transition-all ${
+                      newRole === 'psychologist' ? 'border-teal-500 bg-teal-50' : 'border-zinc-200 hover:border-zinc-300'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">🧠</div>
+                    <div className="text-xs font-medium">Psicólogo</div>
+                    <div className="text-xs text-zinc-500">Portal prof.</div>
+                  </button>
+                  <button
+                    onClick={() => { setNewRole('admin'); setNewPlan('elite'); }}
+                    className={`p-3 rounded-lg border-2 text-center transition-all ${
+                      newRole === 'admin' ? 'border-red-500 bg-red-50' : 'border-zinc-200 hover:border-zinc-300'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">🛡️</div>
+                    <div className="text-xs font-medium">Admin</div>
+                    <div className="text-xs text-zinc-500">Acesso total</div>
+                  </button>
+                </div>
               </div>
 
-              {newPlan !== 'free' && (
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-2">Duração (meses)</label>
-                  <select
-                    value={planDuration}
-                    onChange={(e) => setPlanDuration(parseInt(e.target.value))}
-                    className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value={1}>1 mês</option>
-                    <option value={3}>3 meses</option>
-                    <option value={6}>6 meses</option>
-                    <option value={12}>12 meses (1 ano)</option>
-                    <option value={24}>24 meses (2 anos)</option>
-                    <option value={120}>120 meses (Vitalício)</option>
-                  </select>
+              {/* Info da role admin */}
+              {newRole === 'admin' && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-red-700 mb-1">🛡️ Role Admin — Acesso Total</p>
+                  <ul className="text-xs text-red-600 space-y-0.5">
+                    <li>✓ Plano Elite vitalício (automático)</li>
+                    <li>✓ Acesso ao Painel Admin</li>
+                    <li>✓ Acesso ao Portal de Psicólogo</li>
+                    <li>✓ Todos os recursos do app desbloqueados</li>
+                  </ul>
                 </div>
               )}
 
-              <div className="bg-indigo-50 rounded-lg p-4">
-                <p className="text-sm text-indigo-700">
-                  {newPlan === 'free' 
-                    ? 'O plano será alterado para Free imediatamente.'
-                    : `O plano ${newPlan.toUpperCase()} será ativado por ${planDuration} ${planDuration === 1 ? 'mês' : 'meses'}.`
-                  }
-                </p>
-              </div>
+              {/* Plano — apenas para roles não-admin */}
+              {newRole !== 'admin' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-2">Plano</label>
+                    <select
+                      value={newPlan}
+                      onChange={(e) => setNewPlan(e.target.value)}
+                      className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="free">Free (Gratuito)</option>
+                      <option value="premium">Premium (R$ 19,90/mês)</option>
+                      <option value="elite">Elite (R$ 99,90/mês)</option>
+                    </select>
+                  </div>
+
+                  {newPlan !== 'free' && (
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 mb-2">Duração (meses)</label>
+                      <select
+                        value={planDuration}
+                        onChange={(e) => setPlanDuration(parseInt(e.target.value))}
+                        className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value={1}>1 mês</option>
+                        <option value={3}>3 meses</option>
+                        <option value={6}>6 meses</option>
+                        <option value={12}>12 meses (1 ano)</option>
+                        <option value={24}>24 meses (2 anos)</option>
+                        <option value={120}>120 meses (Vitalício)</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="bg-indigo-50 rounded-lg p-4">
+                    <p className="text-sm text-indigo-700">
+                      {newPlan === 'free' 
+                        ? 'O plano será alterado para Free imediatamente.'
+                        : `O plano ${newPlan.toUpperCase()} será ativado por ${planDuration} ${planDuration === 1 ? 'mês' : 'meses'}.`
+                      }
+                    </p>
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button

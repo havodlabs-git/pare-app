@@ -872,6 +872,8 @@ export default function App() {
           avatar: (currentUser as any)?.avatar || "",
           bio: (currentUser as any)?.bio || "",
           plan: userProfile.plan || "free",
+          isAdmin: (currentUser as any)?.isAdmin || false,
+          isPsychologist: (currentUser as any)?.isPsychologist || false,
         }}
         behavioralProfile={userProfile.behavioralProfile}
         achievements={userProfile.achievements}

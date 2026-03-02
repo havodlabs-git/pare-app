@@ -19,6 +19,8 @@ interface UserData {
   avatar?: string;
   bio?: string;
   plan: "free" | "premium" | "elite";
+  isAdmin?: boolean;
+  isPsychologist?: boolean;
 }
 
 interface UserSettings {
@@ -301,6 +303,46 @@ export function UserProfileDrawer({
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-pink-500 transition-colors" />
               </button>
+
+              {/* Acesso Admin / Psicólogo */}
+              {(user.isAdmin || user.isPsychologist) && (
+                <div className="pt-2 border-t border-gray-100 space-y-2">
+                  {user.isAdmin && (
+                    <a
+                      href="/admin"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center gap-3 p-4 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-200 transition-all group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-red-600" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-red-700 text-sm">Painel Admin</p>
+                        <p className="text-xs text-red-500">Gestão completa do app</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-red-400" />
+                    </a>
+                  )}
+                  {(user.isAdmin || user.isPsychologist) && (
+                    <a
+                      href="/psicologo"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center gap-3 p-4 rounded-2xl bg-teal-50 hover:bg-teal-100 border border-teal-200 transition-all group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                        <Brain className="w-5 h-5 text-teal-600" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-teal-700 text-sm">Portal Psicólogo</p>
+                        <p className="text-xs text-teal-500">Gestão de sessões e pacientes</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-teal-400" />
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Separador */}
               <div className="pt-2 border-t border-gray-100">
