@@ -12,7 +12,7 @@ import { ModuleSelector } from "./components/ModuleSelector";
 import { LogoWithText } from "./components/Logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./components/ui/alert-dialog";
-import { Home, Award, BarChart3, MessageSquare, LogOut, User, CreditCard, Video, MessageCircle, Save, Loader2, Settings, Receipt, ChevronDown, Bell, Shield, Trash2, HelpCircle, Mail } from "lucide-react";
+import { Home, Award, BarChart3, MessageSquare, LogOut, User, CreditCard, Video, MessageCircle, Save, Loader2, Settings, Receipt, ChevronDown, Bell, Shield, Trash2, HelpCircle, Mail, TrendingUp } from "lucide-react";
 import Chat from "./components/Chat";
 import { useToast } from "./context/ToastContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./components/ui/dropdown-menu";
@@ -36,6 +36,7 @@ import {
   ACHIEVEMENTS_DEFINITIONS,
   getMaxCleanStreak,
 } from "./components/SeasonDashboard";
+import { ProgressTab } from "./components/ProgressTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -588,10 +589,14 @@ export default function App() {
           {activeTab !== "pricing" && <MotivationalQuotes />}
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-7 mb-6 h-12">
+            <TabsList className="grid w-full grid-cols-8 mb-6 h-12">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <Home className="w-4 h-4" />
                 <span className="hidden sm:inline">Início</span>
+              </TabsTrigger>
+              <TabsTrigger value="progress" className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                <span className="hidden sm:inline">Progresso</span>
               </TabsTrigger>
               <TabsTrigger value="achievements" className="flex items-center gap-2">
                 <Award className="w-4 h-4" />
@@ -645,6 +650,27 @@ export default function App() {
                   onReset={() => setShowResetDialog(true)}
                   onRelapse={() => setShowRelapseDialog(true)}
                 />
+              )}
+            </TabsContent>
+
+            {/* ── Progresso ───────────────────────────────────────────────────── */}
+            <TabsContent value="progress">
+              {hasSeason ? (
+                <ProgressTab
+                  season={userProfile.currentSeason!}
+                  profile={userProfile.behavioralProfile!}
+                  logs={userProfile.habitLogs || []}
+                  onLogHabit={handleLogHabit}
+                  onRegisterRelapse={handleRegisterRelapse}
+                />
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <h3 className="text-gray-600 font-semibold mb-2">Sem temporada ativa</h3>
+                  <p className="text-gray-400 text-sm">Complete o onboarding comportamental para ver o seu progresso detalhado.</p>
+                </div>
               )}
             </TabsContent>
 
