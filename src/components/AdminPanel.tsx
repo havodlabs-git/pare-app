@@ -49,7 +49,7 @@ interface Professional {
   isActive: boolean;
 }
 
-type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas';
+type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas' | 'content';
 
 const AdminPanel: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -82,6 +82,17 @@ const AdminPanel: React.FC = () => {
   });
   
   // Videochamadas - Jitsi Meet (não precisa de configuração)
+
+  // Vícios & Hábitos
+  const [addictions, setAddictions] = useState<any[]>([]);
+  const [habits, setHabits] = useState<any[]>([]);
+  const [contentSubTab, setContentSubTab] = useState<'addictions' | 'habits'>('addictions');
+  const [showAddictionModal, setShowAddictionModal] = useState(false);
+  const [showHabitModal, setShowHabitModal] = useState(false);
+  const [editingAddiction, setEditingAddiction] = useState<any | null>(null);
+  const [editingHabit, setEditingHabit] = useState<any | null>(null);
+  const [addictionForm, setAddictionForm] = useState({ label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral' });
+  const [habitForm, setHabitForm] = useState({ name: '', description: '', category: 'geral', icon: '⭐', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
 
   // Check if already logged in
   useEffect(() => {
@@ -147,6 +158,12 @@ const AdminPanel: React.FC = () => {
           break;
         case 'videochamadas':
           // Jitsi Meet não precisa de configuração
+          break;
+        case 'content':
+          const addictionsRes = await api.get('/admin/addictions');
+          setAddictions(addictionsRes.data.data.addictions);
+          const habitsRes = await api.get('/admin/habits');
+          setHabits(habitsRes.data.data.habits);
           break;
       }
     } catch (err: any) {
@@ -282,6 +299,73 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // Handlers de Vícios
+  const handleSaveAddiction = async () => {
+    try {
+      if (editingAddiction) {
+        await api.put(`/admin/addictions/${editingAddiction.id}`, addictionForm);
+      } else {
+        await api.post('/admin/addictions', addictionForm);
+      }
+      setShowAddictionModal(false);
+      setEditingAddiction(null);
+      setAddictionForm({ label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral' });
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao salvar vício');
+    }
+  };
+
+  const handleEditAddiction = (addiction: any) => {
+    setEditingAddiction(addiction);
+    setAddictionForm({ label: addiction.label, icon: addiction.icon, color: addiction.color, description: addiction.description || '', category: addiction.category || 'geral' });
+    setShowAddictionModal(true);
+  };
+
+  const handleDeleteAddiction = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este vício?')) return;
+    try {
+      await api.delete(`/admin/addictions/${id}`);
+      loadData();
+    } catch (err) {
+      alert('Erro ao excluir vício');
+    }
+  };
+
+  // Handlers de Hábitos
+  const handleSaveHabit = async () => {
+    try {
+      const payload = { ...habitForm, tags: habitForm.tags.split(',').map(t => t.trim()).filter(Boolean) };
+      if (editingHabit) {
+        await api.put(`/admin/habits/${editingHabit.id}`, payload);
+      } else {
+        await api.post('/admin/habits', payload);
+      }
+      setShowHabitModal(false);
+      setEditingHabit(null);
+      setHabitForm({ name: '', description: '', category: 'geral', icon: '⭐', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao salvar hábito');
+    }
+  };
+
+  const handleEditHabit = (habit: any) => {
+    setEditingHabit(habit);
+    setHabitForm({ name: habit.name, description: habit.description || '', category: habit.category || 'geral', icon: habit.icon || '⭐', color: habit.color || '#8b5cf6', frequency: habit.frequency || 3, duration: habit.duration || 30, period: habit.period || 'morning', addictionId: habit.addictionId || '', tags: Array.isArray(habit.tags) ? habit.tags.join(', ') : '' });
+    setShowHabitModal(true);
+  };
+
+  const handleDeleteHabit = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este hábito?')) return;
+    try {
+      await api.delete(`/admin/habits/${id}`);
+      loadData();
+    } catch (err) {
+      alert('Erro ao excluir hábito');
+    }
+  };
+
 
 
   const tabs = [
@@ -289,6 +373,7 @@ const AdminPanel: React.FC = () => {
     { id: 'users', label: 'Usuários', icon: Users },
     { id: 'posts', label: 'Posts', icon: MessageSquare },
     { id: 'professionals', label: 'Psicólogos', icon: UserCheck },
+    { id: 'content', label: 'Vícios & Hábitos', icon: Settings },
     { id: 'videochamadas', label: 'Videochamadas', icon: Video },
   ];
 
@@ -777,6 +862,274 @@ const AdminPanel: React.FC = () => {
                           >
                             Salvar
                           </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Vícios & Hábitos */}
+            {activeTab === 'content' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-zinc-900">Vícios &amp; Hábitos</h2>
+                  <button
+                    onClick={() => {
+                      if (contentSubTab === 'addictions') {
+                        setEditingAddiction(null);
+                        setAddictionForm({ label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral' });
+                        setShowAddictionModal(true);
+                      } else {
+                        setEditingHabit(null);
+                        setHabitForm({ name: '', description: '', category: 'geral', icon: '⭐', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
+                        setShowHabitModal(true);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {contentSubTab === 'addictions' ? 'Novo Vício' : 'Novo Hábito'}
+                  </button>
+                </div>
+
+                {/* Sub-tabs */}
+                <div className="flex gap-2 mb-6">
+                  <button
+                    onClick={() => setContentSubTab('addictions')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      contentSubTab === 'addictions' ? 'bg-indigo-600 text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                    }`}
+                  >
+                    Vícios ({addictions.length})
+                  </button>
+                  <button
+                    onClick={() => setContentSubTab('habits')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      contentSubTab === 'habits' ? 'bg-indigo-600 text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                    }`}
+                  >
+                    Hábitos Sugeridos ({habits.length})
+                  </button>
+                </div>
+
+                {/* Lista de Vícios */}
+                {contentSubTab === 'addictions' && (
+                  <div className="space-y-3">
+                    {addictions.length === 0 && (
+                      <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
+                        <p className="text-zinc-400 text-sm">Nenhum vício cadastrado. Clique em "Novo Vício" para adicionar.</p>
+                      </div>
+                    )}
+                    {addictions.map(addiction => (
+                      <div key={addiction.id} className="bg-white rounded-xl border border-zinc-200 p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: addiction.color + '20' }}>
+                          {addiction.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-zinc-900">{addiction.label}</p>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">{addiction.category}</span>
+                            {!addiction.isActive && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">Inativo</span>}
+                          </div>
+                          {addiction.description && <p className="text-sm text-zinc-500 truncate">{addiction.description}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleEditAddiction(addiction)}
+                            className="p-2 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-500 hover:text-indigo-600"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAddiction(addiction.id)}
+                            className="p-2 hover:bg-red-50 rounded-lg transition-colors text-zinc-500 hover:text-red-600"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Lista de Hábitos */}
+                {contentSubTab === 'habits' && (
+                  <div className="space-y-3">
+                    {habits.length === 0 && (
+                      <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
+                        <p className="text-zinc-400 text-sm">Nenhum hábito cadastrado. Clique em "Novo Hábito" para adicionar.</p>
+                      </div>
+                    )}
+                    {habits.map(habit => (
+                      <div key={habit.id} className="bg-white rounded-xl border border-zinc-200 p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: habit.color + '20' }}>
+                          {habit.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-zinc-900">{habit.name}</p>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">{habit.category}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600">{habit.frequency}x/sem</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">{habit.duration} min</span>
+                            {habit.addictionId && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-600">
+                                {addictions.find(a => a.id === habit.addictionId)?.label || habit.addictionId}
+                              </span>
+                            )}
+                          </div>
+                          {habit.description && <p className="text-sm text-zinc-500 truncate mt-0.5">{habit.description}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleEditHabit(habit)}
+                            className="p-2 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-500 hover:text-indigo-600"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteHabit(habit.id)}
+                            className="p-2 hover:bg-red-50 rounded-lg transition-colors text-zinc-500 hover:text-red-600"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Modal de Vício */}
+                {showAddictionModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg font-bold text-zinc-900">{editingAddiction ? 'Editar Vício' : 'Novo Vício'}</h3>
+                        <button onClick={() => setShowAddictionModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg"><X className="w-5 h-5" /></button>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Nome *</label>
+                          <input type="text" value={addictionForm.label} onChange={e => setAddictionForm({...addictionForm, label: e.target.value})} placeholder="Ex: Pornografia" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Emoji/Ícone</label>
+                            <input type="text" value={addictionForm.icon} onChange={e => setAddictionForm({...addictionForm, icon: e.target.value})} placeholder="🔴" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Cor</label>
+                            <div className="flex gap-2">
+                              <input type="color" value={addictionForm.color} onChange={e => setAddictionForm({...addictionForm, color: e.target.value})} className="w-10 h-10 rounded-lg border border-zinc-200 cursor-pointer" />
+                              <input type="text" value={addictionForm.color} onChange={e => setAddictionForm({...addictionForm, color: e.target.value})} className="flex-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Categoria</label>
+                          <select value={addictionForm.category} onChange={e => setAddictionForm({...addictionForm, category: e.target.value})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="geral">Geral</option>
+                            <option value="digital">Digital</option>
+                            <option value="substancia">Substância</option>
+                            <option value="comportamental">Comportamental</option>
+                            <option value="alimentar">Alimentar</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Descrição</label>
+                          <textarea value={addictionForm.description} onChange={e => setAddictionForm({...addictionForm, description: e.target.value})} rows={2} placeholder="Descrição opcional..." className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button onClick={() => setShowAddictionModal(false)} className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50">Cancelar</button>
+                          <button onClick={handleSaveAddiction} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Salvar</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Modal de Hábito */}
+                {showHabitModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl my-4">
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg font-bold text-zinc-900">{editingHabit ? 'Editar Hábito' : 'Novo Hábito'}</h3>
+                        <button onClick={() => setShowHabitModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg"><X className="w-5 h-5" /></button>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Nome *</label>
+                          <input type="text" value={habitForm.name} onChange={e => setHabitForm({...habitForm, name: e.target.value})} placeholder="Ex: Meditação Matinal" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Emoji/Ícone</label>
+                            <input type="text" value={habitForm.icon} onChange={e => setHabitForm({...habitForm, icon: e.target.value})} placeholder="⭐" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Cor</label>
+                            <div className="flex gap-2">
+                              <input type="color" value={habitForm.color} onChange={e => setHabitForm({...habitForm, color: e.target.value})} className="w-10 h-10 rounded-lg border border-zinc-200 cursor-pointer" />
+                              <input type="text" value={habitForm.color} onChange={e => setHabitForm({...habitForm, color: e.target.value})} className="flex-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Categoria</label>
+                            <select value={habitForm.category} onChange={e => setHabitForm({...habitForm, category: e.target.value})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                              <option value="geral">Geral</option>
+                              <option value="exercicio">Exercício</option>
+                              <option value="mindfulness">Mindfulness</option>
+                              <option value="leitura">Leitura</option>
+                              <option value="social">Social</option>
+                              <option value="criatividade">Criatividade</option>
+                              <option value="saude">Saúde</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Período</label>
+                            <select value={habitForm.period} onChange={e => setHabitForm({...habitForm, period: e.target.value})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                              <option value="morning">Manhã</option>
+                              <option value="afternoon">Tarde</option>
+                              <option value="evening">Noite</option>
+                              <option value="anytime">Qualquer hora</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Frequência (vezes/semana)</label>
+                            <input type="number" min={1} max={7} value={habitForm.frequency} onChange={e => setHabitForm({...habitForm, frequency: parseInt(e.target.value)})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Duração (minutos)</label>
+                            <input type="number" min={5} max={240} value={habitForm.duration} onChange={e => setHabitForm({...habitForm, duration: parseInt(e.target.value)})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Vício Relacionado (opcional)</label>
+                          <select value={habitForm.addictionId} onChange={e => setHabitForm({...habitForm, addictionId: e.target.value})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Nenhum (hábito geral)</option>
+                            {addictions.map(a => <option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Descrição</label>
+                          <textarea value={habitForm.description} onChange={e => setHabitForm({...habitForm, description: e.target.value})} rows={2} placeholder="Descrição opcional..." className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Tags (separadas por vírgula)</label>
+                          <input type="text" value={habitForm.tags} onChange={e => setHabitForm({...habitForm, tags: e.target.value})} placeholder="Ex: relaxamento, foco, saúde" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button onClick={() => setShowHabitModal(false)} className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50">Cancelar</button>
+                          <button onClick={handleSaveHabit} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Salvar</button>
                         </div>
                       </div>
                     </div>
