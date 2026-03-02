@@ -689,7 +689,6 @@ export default function App() {
                   logs={userProfile.habitLogs || []}
                   relapseLogs={userProfile.relapseLogs || []}
                   onLogHabit={handleLogHabit}
-                  onRegisterRelapse={handleRegisterRelapse}
                 />
               ) : (
                 <div className="text-center py-16">

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import {
   CheckCircle2, XCircle, SkipForward, Target, Calendar,
   TrendingUp, Flame, Award, Clock, ChevronLeft, ChevronRight,
-  Zap, BarChart2, Activity, Star, AlertTriangle, ShieldAlert
+  Zap, BarChart2, Activity, Star, AlertTriangle
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -22,7 +22,6 @@ interface ProgressTabProps {
   logs: HabitLog[];
   relapseLogs: RelapseLog[];
   onLogHabit: (habitId: string, status: HabitStatus) => void;
-  onRegisterRelapse: () => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,8 +57,7 @@ function getSeasonDays(startDate: string, durationDays: number): string[] {
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
-export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit, onRegisterRelapse }: ProgressTabProps) {
-  const [showRelapseConfirm, setShowRelapseConfirm] = useState(false);
+export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: ProgressTabProps) {
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -319,28 +317,6 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit, on
           </div>
         )}
 
-        {/* Botão de Recaída do Dia — separado dos hábitos */}
-        <div className="px-5 py-4 border-t border-gray-50 bg-gray-50/50">
-          {todayRelapse ? (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200">
-              <ShieldAlert className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-red-700">Recaída registada hoje</p>
-                <p className="text-xs text-red-500">
-                  {new Date(todayRelapse.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} — Amanhã é um novo começo.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowRelapseConfirm(true)}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 transition-all text-sm font-semibold"
-            >
-              <AlertTriangle className="w-4 h-4" />
-              Registar Recaída de Hoje
-            </button>
-          )}
-        </div>
       </div>
 
       {/* ── Stats Rápidas ────────────────────────────────────────────────────── */}
@@ -609,38 +585,6 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit, on
         </div>
       </div>
 
-      {/* ── Modal de Confirmação de Recaída ──────────────────────────────────── */}
-      {showRelapseConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-              <ShieldAlert className="w-6 h-6 text-red-500" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Registar Recaída de Hoje?</h3>
-            <p className="text-gray-500 text-sm text-center mb-2">
-              Isto ficará registado como <strong>1 recaída</strong> no dia de hoje — independente dos seus hábitos.
-            </p>
-            <p className="text-gray-400 text-xs text-center mb-6">
-              Reconhecer é o primeiro passo. Só pode registar uma recaída por dia.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowRelapseConfirm(false)}
-                className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => { onRegisterRelapse(); setShowRelapseConfirm(false); }}
-                className="flex-1 py-3 rounded-2xl font-semibold text-sm text-white transition-all active:scale-95"
-                style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}
-              >
-                Registar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

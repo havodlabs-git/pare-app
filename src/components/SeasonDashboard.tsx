@@ -293,6 +293,39 @@ export function SeasonDashboard({
             </div>
           )}
 
+          {/* Relapse Button */}
+          {(() => {
+            const todayRelapse = relapseLogs.find((r) => r.dateKey === today);
+            return (
+              <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-400" />
+                    <span className="text-gray-800 text-sm font-semibold">Registar Recaída</span>
+                  </div>
+                  {todayRelapse && (
+                    <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">1 recaída hoje</span>
+                  )}
+                </div>
+                <p className="text-gray-400 text-xs mb-3">Se hoje houve uma recaída, registe aqui. Apenas 1 por dia.</p>
+                {todayRelapse ? (
+                  <div className="flex items-center gap-2 rounded-xl p-3 bg-red-50 border border-red-100">
+                    <XCircle className="w-4 h-4 text-red-400" />
+                    <span className="text-red-600 text-sm font-medium">Recaída já registada hoje — amanhã é um novo começo.</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => onRegisterRelapse()}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-red-200 text-red-500 font-semibold text-sm hover:bg-red-50 active:scale-95 transition-all"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    Tive uma recaída hoje
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Weekly overview */}
           <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">
             <h3 className="text-gray-800 text-sm font-semibold mb-3 flex items-center gap-2">
