@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Logo } from "./Logo";
@@ -37,7 +37,20 @@ interface OnboardingBehavioralProps {
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
-const ADDICTIONS = [
+// Mapa de imagens locais por ID de vicio (fallback quando não há imageUrl do backend)
+const ADDICTION_IMG_MAP: Record<string, string> = {
+  pornography: "/icons/onboarding/habit-porn.png",
+  compulsive_masturbation: "/icons/onboarding/habit-porn.png",
+  alcohol: "/icons/onboarding/habit-alcohol.png",
+  smoking: "/icons/onboarding/habit-smoking.png",
+  social_media: "/icons/onboarding/habit-social.png",
+  compulsive_eating: "/icons/onboarding/habit-food.png",
+  shopping: "/icons/onboarding/habit-shopping.png",
+  gambling: "/icons/onboarding/habit-shopping.png",
+};
+
+// Fallback local para quando o backend não está disponível
+const ADDICTIONS_FALLBACK = [
   { id: "pornography",            label: "Pornografia",             img: "/icons/onboarding/habit-porn.png",     emoji: "🔞" },
   { id: "compulsive_masturbation",label: "Masturbação compulsiva",  img: "/icons/onboarding/habit-porn.png",     emoji: "🚫" },
   { id: "alcohol",                label: "Álcool",                  img: "/icons/onboarding/habit-alcohol.png",  emoji: "🍷" },
@@ -146,6 +159,26 @@ function SelectChip({
 export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) {
   const TOTAL_STEPS = 8;
   const [step, setStep] = useState(1);
+
+  // Vícios carregados do backend (com fallback local)
+  const [addictionsList, setAddictionsList] = useState<{ id: string; label: string; img: string; emoji: string }[]>(ADDICTIONS_FALLBACK);
+
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || 'https://pare-app-backend-295077330394.us-central1.run.app';
+    fetch(`${API_URL}/api/modules/addictions`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data?.addictions?.length > 0) {
+          setAddictionsList(data.data.addictions.map((a: any) => ({
+            id: a.id,
+            label: a.name,
+            img: a.imageUrl || ADDICTION_IMG_MAP[a.id] || '',
+            emoji: a.icon || '⭐',
+          })));
+        }
+      })
+      .catch(() => { /* usa fallback local */ });
+  }, []);
 
   const [lgpdAccepted, setLgpdAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -370,7 +403,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
           <div className="space-y-5">
             <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Selecione um ou mais</p>
             <div className="space-y-2">
-              {ADDICTIONS.map((a) => {
+              {addictionsList.map((a) => {
                 const selected = addictions.includes(a.id);
                 return (
                   <SelectChip
@@ -397,7 +430,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                 </p>
                 <div className="space-y-2">
                   {addictions.map((id) => {
-                    const a = ADDICTIONS.find((x) => x.id === id)!;
+                    const a = addictionsList.find((x) => x.id === id)!;
                     return (
                       <SelectChip
                         key={id}
@@ -426,7 +459,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
         return (
           <div className="space-y-6">
             {addictions.map((id) => {
-              const a = ADDICTIONS.find((x) => x.id === id)!;
+              const a = addictionsList.find((x) => x.id === id)!;
               const current = intensityMap[id] || 0;
               return (
                 <div key={id} className="space-y-3">
