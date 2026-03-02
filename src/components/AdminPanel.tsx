@@ -83,10 +83,14 @@ const AdminPanel: React.FC = () => {
   
   // Videochamadas - Jitsi Meet (não precisa de configuração)
 
-  // Vícios & Hábitos
+  // Vícios & Hábitos & Módulos
   const [addictions, setAddictions] = useState<any[]>([]);
   const [habits, setHabits] = useState<any[]>([]);
-  const [contentSubTab, setContentSubTab] = useState<'addictions' | 'habits'>('addictions');
+  const [modules, setModules] = useState<any[]>([]);
+  const [contentSubTab, setContentSubTab] = useState<'addictions' | 'habits' | 'modules'>('addictions');
+  const [showModuleModal, setShowModuleModal] = useState(false);
+  const [editingModule, setEditingModule] = useState<any | null>(null);
+  const [moduleForm, setModuleForm] = useState({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true });
   const [showAddictionModal, setShowAddictionModal] = useState(false);
   const [showHabitModal, setShowHabitModal] = useState(false);
   const [editingAddiction, setEditingAddiction] = useState<any | null>(null);
@@ -114,14 +118,18 @@ const AdminPanel: React.FC = () => {
     setLoginError('');
     
     try {
-      const response = await api.login(loginEmail, loginPassword);
-      if (response.success && response.data?.token) {
+      // Usar endpoint específico de admin
+      const response = await api.post('/admin/login', { email: loginEmail, password: loginPassword });
+      if (response.data?.success && response.data?.data?.token) {
+        api.setToken(response.data.data.token);
         setIsLoggedIn(true);
         setLoginEmail('');
         setLoginPassword('');
+      } else {
+        setLoginError(response.data?.message || 'Credenciais inválidas');
       }
     } catch (err: any) {
-      setLoginError(err.message || 'Erro ao fazer login');
+      setLoginError(err.message || 'Erro ao fazer login. Verifique as credenciais.');
     }
     setLoginLoading(false);
   };
@@ -161,9 +169,11 @@ const AdminPanel: React.FC = () => {
           break;
         case 'content':
           const addictionsRes = await api.get('/admin/addictions');
-          setAddictions(addictionsRes.data.data.addictions);
+          setAddictions(addictionsRes.data.data.addictions || []);
           const habitsRes = await api.get('/admin/habits');
-          setHabits(habitsRes.data.data.habits);
+          setHabits(habitsRes.data.data.habits || []);
+          const modulesRes = await api.get('/admin/modules');
+          setModules(modulesRes.data.data.modules || []);
           break;
       }
     } catch (err: any) {
@@ -367,6 +377,39 @@ const AdminPanel: React.FC = () => {
   };
 
 
+
+  // Handlers de Módulos
+  const handleSaveModule = async () => {
+    try {
+      if (editingModule) {
+        await api.put(`/admin/modules/${editingModule.id}`, moduleForm);
+      } else {
+        await api.post('/admin/modules', moduleForm);
+      }
+      setShowModuleModal(false);
+      setEditingModule(null);
+      setModuleForm({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true });
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao salvar módulo');
+    }
+  };
+
+  const handleEditModule = (mod: any) => {
+    setEditingModule(mod);
+    setModuleForm({ name: mod.name, description: mod.description || '', icon: mod.icon || '⭐', color: mod.color || '#8b5cf6', category: mod.category || 'comportamental', requiredPlan: mod.requiredPlan || 'free', isActive: mod.isActive !== false });
+    setShowModuleModal(true);
+  };
+
+  const handleDeleteModule = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este módulo?')) return;
+    try {
+      await api.delete(`/admin/modules/${id}`);
+      loadData();
+    } catch (err) {
+      alert('Erro ao excluir módulo');
+    }
+  };
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -881,16 +924,20 @@ const AdminPanel: React.FC = () => {
                         setEditingAddiction(null);
                         setAddictionForm({ label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral' });
                         setShowAddictionModal(true);
-                      } else {
+                      } else if (contentSubTab === 'habits') {
                         setEditingHabit(null);
                         setHabitForm({ name: '', description: '', category: 'geral', icon: '⭐', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
                         setShowHabitModal(true);
+                      } else {
+                        setEditingModule(null);
+                        setModuleForm({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true });
+                        setShowModuleModal(true);
                       }
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
                   >
                     <Plus className="w-4 h-4" />
-                    {contentSubTab === 'addictions' ? 'Novo Vício' : 'Novo Hábito'}
+                    {contentSubTab === 'addictions' ? 'Novo Vício' : contentSubTab === 'habits' ? 'Novo Hábito' : 'Novo Módulo'}
                   </button>
                 </div>
 
@@ -911,6 +958,14 @@ const AdminPanel: React.FC = () => {
                     }`}
                   >
                     Hábitos Sugeridos ({habits.length})
+                  </button>
+                  <button
+                    onClick={() => setContentSubTab('modules')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      contentSubTab === 'modules' ? 'bg-indigo-600 text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                    }`}
+                  >
+                    Módulos ({modules.length})
                   </button>
                 </div>
 
@@ -1001,6 +1056,112 @@ const AdminPanel: React.FC = () => {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Lista de Módulos */}
+                {contentSubTab === 'modules' && (
+                  <div className="space-y-3">
+                    {modules.length === 0 && (
+                      <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
+                        <p className="text-zinc-400 text-sm">Nenhum módulo cadastrado. Clique em "Novo Módulo" para adicionar.</p>
+                      </div>
+                    )}
+                    {modules.map(mod => (
+                      <div key={mod.id} className="bg-white rounded-xl border border-zinc-200 p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: mod.color + '20' }}>
+                          {mod.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-zinc-900">{mod.name}</p>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">{mod.category}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600">{mod.requiredPlan || 'free'}</span>
+                            {!mod.isActive && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">Inativo</span>}
+                          </div>
+                          {mod.description && <p className="text-sm text-zinc-500 truncate mt-0.5">{mod.description}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleEditModule(mod)}
+                            className="p-2 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-500 hover:text-indigo-600"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteModule(mod.id)}
+                            className="p-2 hover:bg-red-50 rounded-lg transition-colors text-zinc-500 hover:text-red-600"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Modal de Módulo */}
+                {showModuleModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg font-bold text-zinc-900">{editingModule ? 'Editar Módulo' : 'Novo Módulo'}</h3>
+                        <button onClick={() => setShowModuleModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg"><X className="w-5 h-5" /></button>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Nome *</label>
+                          <input type="text" value={moduleForm.name} onChange={e => setModuleForm({...moduleForm, name: e.target.value})} placeholder="Ex: Pornografia" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Emoji/Ícone</label>
+                            <input type="text" value={moduleForm.icon} onChange={e => setModuleForm({...moduleForm, icon: e.target.value})} placeholder="⭐" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Cor</label>
+                            <div className="flex gap-2">
+                              <input type="color" value={moduleForm.color} onChange={e => setModuleForm({...moduleForm, color: e.target.value})} className="w-10 h-10 rounded-lg border border-zinc-200 cursor-pointer" />
+                              <input type="text" value={moduleForm.color} onChange={e => setModuleForm({...moduleForm, color: e.target.value})} className="flex-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Categoria</label>
+                            <select value={moduleForm.category} onChange={e => setModuleForm({...moduleForm, category: e.target.value})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                              <option value="comportamental">Comportamental</option>
+                              <option value="digital">Digital</option>
+                              <option value="substancia">Substância</option>
+                              <option value="alimentar">Alimentar</option>
+                              <option value="geral">Geral</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Plano Necessário</label>
+                            <select value={moduleForm.requiredPlan} onChange={e => setModuleForm({...moduleForm, requiredPlan: e.target.value})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                              <option value="free">Free (Gratuito)</option>
+                              <option value="premium">Premium</option>
+                              <option value="elite">Elite</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Descrição</label>
+                          <textarea value={moduleForm.description} onChange={e => setModuleForm({...moduleForm, description: e.target.value})} rows={2} placeholder="Descrição do módulo..." className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <input type="checkbox" id="moduleActive" checked={moduleForm.isActive} onChange={e => setModuleForm({...moduleForm, isActive: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded" />
+                          <label htmlFor="moduleActive" className="text-sm font-medium text-zinc-700">Módulo ativo</label>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button onClick={() => setShowModuleModal(false)} className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50">Cancelar</button>
+                          <button onClick={handleSaveModule} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Salvar</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
