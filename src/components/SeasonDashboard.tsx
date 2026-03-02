@@ -260,15 +260,16 @@ export function SeasonDashboard({
       {/* ── Tab: Início ─────────────────────────────────────────────────────── */}
       {activeTab === "home" && (
         <div className="space-y-4">
-          {/* Today's progress */}
+
+          {/* Quick today summary */}
           {todayTotal > 0 && (
             <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-violet-500" />
-                  <span className="text-gray-800 text-sm font-semibold">Progresso de Hoje</span>
+                  <span className="text-gray-800 text-sm font-semibold">Hoje — {todayDoneCount}/{todayTotal} hábitos concluídos</span>
                 </div>
-                <span className="text-gray-500 text-sm">{todayDoneCount}/{todayTotal} hábitos</span>
+                <span className="text-violet-600 text-sm font-bold">{todayProgress}%</span>
               </div>
               <div className="h-2 rounded-full overflow-hidden bg-gray-100">
                 <div
@@ -276,113 +277,9 @@ export function SeasonDashboard({
                   style={{ width: `${todayProgress}%` }}
                 />
               </div>
+              <p className="text-gray-400 text-xs mt-2">Aceda à aba <strong>Progresso</strong> para registar os seus hábitos de hoje.</p>
             </div>
           )}
-
-          {/* Today's habits */}
-          <div>
-            <h2 className="text-gray-800 font-bold mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-violet-500" />
-              Hábitos de Hoje
-            </h2>
-
-            {todayHabits.length === 0 ? (
-              <div className="rounded-2xl p-8 text-center bg-white border border-gray-100 shadow-sm">
-                <p className="text-4xl mb-3">🌿</p>
-                <p className="text-gray-600 font-medium">Nenhum hábito hoje</p>
-                <p className="text-gray-400 text-sm mt-1">Aproveite para descansar e recarregar!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {todayHabits.map((habit) => {
-                  const status = getHabitStatusToday(habit.habitId);
-                  const isDone = status === "done";
-                  const isRelapse = status === "relapse";
-                  const isSkipped = status === "skipped";
-                  const isPending = !status;
-
-                  return (
-                    <div
-                      key={habit.habitId}
-                      className={`rounded-2xl p-4 border transition-all duration-300 ${
-                        isDone    ? "bg-emerald-50 border-emerald-200" :
-                        isRelapse ? "bg-red-50 border-red-200" :
-                        isSkipped ? "bg-gray-50 border-gray-200" :
-                        "bg-white border-gray-100 shadow-sm hover:border-violet-200 hover:shadow-md"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                          isDone    ? "bg-emerald-100" :
-                          isRelapse ? "bg-red-100" :
-                          isSkipped ? "bg-gray-100" :
-                          "bg-violet-100"
-                        }`}>
-                          {isDone    ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> :
-                           isRelapse ? <XCircle className="w-5 h-5 text-red-500" /> :
-                           isSkipped ? <SkipForward className="w-5 h-5 text-gray-400" /> :
-                                       <Target className="w-5 h-5 text-violet-500" />}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className={`font-semibold text-sm ${
-                              isDone    ? "text-emerald-700" :
-                              isRelapse ? "text-red-600" :
-                              isSkipped ? "text-gray-400 line-through" :
-                              "text-gray-800"
-                            }`}>
-                              {habit.habitName}
-                            </h3>
-                            {status && (
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${
-                                isDone    ? "bg-emerald-100 text-emerald-700" :
-                                isRelapse ? "bg-red-100 text-red-600" :
-                                            "bg-gray-100 text-gray-500"
-                              }`}>
-                                {isDone ? "✓ Feito" : isRelapse ? "⚠ Recaída" : "— Pulado"}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5">
-                            <Clock className="w-3 h-3" />
-                            {habit.timeSlot} • {habit.durationMinutes} min
-                          </p>
-                        </div>
-                      </div>
-
-                      {isPending && (
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => onLogHabit(habit.habitId, "done")}
-                            className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl text-xs font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
-                            style={{ background: "linear-gradient(135deg, #10b981, #059669)", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Concluído
-                          </button>
-                          <button
-                            onClick={() => onLogHabit(habit.habitId, "skipped")}
-                            className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all"
-                          >
-                            <SkipForward className="w-3.5 h-3.5" />
-                            Pular
-                          </button>
-                          <button
-                            onClick={() => setShowRelapseConfirm(habit.habitId)}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all"
-                            title="Registrar recaída"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
 
           {/* Weekly overview */}
           <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">
