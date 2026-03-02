@@ -81,6 +81,22 @@ class ApiService {
     return { data: response };
   }
 
+  // Upload file (multipart/form-data)
+  async uploadFile(endpoint, formData) {
+    const url = `${this.baseURL}/api${endpoint}`;
+    const headers = {};
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    // Não definir Content-Type — o browser define automaticamente com boundary
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Erro no upload');
+    return { data };
+  }
+
   // Set token
   setToken(token) {
     this.token = token;

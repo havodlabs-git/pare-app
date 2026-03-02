@@ -3,7 +3,7 @@ import {
   Users, MessageSquare, UserCheck, Calendar, Settings, 
   BarChart3, Search, MoreVertical, Ban, CheckCircle, 
   Trash2, Edit, Plus, Video, X, Eye, ChevronLeft, ChevronRight,
-  TrendingUp, DollarSign, Clock, Shield, LogIn, LogOut
+  TrendingUp, DollarSign, Clock, Shield, LogIn, LogOut, Upload, Image
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -90,7 +90,10 @@ const AdminPanel: React.FC = () => {
   const [contentSubTab, setContentSubTab] = useState<'addictions' | 'habits' | 'modules'>('addictions');
   const [showModuleModal, setShowModuleModal] = useState(false);
   const [editingModule, setEditingModule] = useState<any | null>(null);
-  const [moduleForm, setModuleForm] = useState({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true });
+  const [moduleForm, setModuleForm] = useState<{ name: string; description: string; icon: string; color: string; category: string; requiredPlan: string; isActive: boolean; imageUrl: string | null }>({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
+  const [moduleImageFile, setModuleImageFile] = useState<File | null>(null);
+  const [moduleImagePreview, setModuleImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [showAddictionModal, setShowAddictionModal] = useState(false);
   const [showHabitModal, setShowHabitModal] = useState(false);
   const [editingAddiction, setEditingAddiction] = useState<any | null>(null);
@@ -379,25 +382,54 @@ const AdminPanel: React.FC = () => {
 
 
   // Handlers de Módulos
+  const handleModuleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setModuleImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setModuleImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveModule = async () => {
     try {
+      let imageUrl = moduleForm.imageUrl;
+
+      // Se há um ficheiro de imagem para upload, enviar primeiro
+      if (moduleImageFile) {
+        setUploadingImage(true);
+        const moduleId = editingModule?.id || moduleForm.name.toLowerCase().replace(/\s+/g, '_') || `module_${Date.now()}`;
+        const formData = new FormData();
+        formData.append('image', moduleImageFile);
+        formData.append('moduleId', moduleId);
+        const uploadRes = await api.uploadFile('/admin/modules/upload-image', formData);
+        imageUrl = uploadRes.data.data.imageUrl;
+        setUploadingImage(false);
+      }
+
+      const payload = { ...moduleForm, imageUrl };
       if (editingModule) {
-        await api.put(`/admin/modules/${editingModule.id}`, moduleForm);
+        await api.put(`/admin/modules/${editingModule.id}`, payload);
       } else {
-        await api.post('/admin/modules', moduleForm);
+        await api.post('/admin/modules', payload);
       }
       setShowModuleModal(false);
       setEditingModule(null);
-      setModuleForm({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true });
+      setModuleForm({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
+      setModuleImageFile(null);
+      setModuleImagePreview(null);
       loadData();
     } catch (err: any) {
+      setUploadingImage(false);
       alert(err.message || 'Erro ao salvar módulo');
     }
   };
 
   const handleEditModule = (mod: any) => {
     setEditingModule(mod);
-    setModuleForm({ name: mod.name, description: mod.description || '', icon: mod.icon || '⭐', color: mod.color || '#8b5cf6', category: mod.category || 'comportamental', requiredPlan: mod.requiredPlan || 'free', isActive: mod.isActive !== false });
+    setModuleForm({ name: mod.name, description: mod.description || '', icon: mod.icon || '⭐', color: mod.color || '#8b5cf6', category: mod.category || 'comportamental', requiredPlan: mod.requiredPlan || 'free', isActive: mod.isActive !== false, imageUrl: mod.imageUrl || null });
+    setModuleImageFile(null);
+    setModuleImagePreview(mod.imageUrl || null);
     setShowModuleModal(true);
   };
 
@@ -930,7 +962,9 @@ const AdminPanel: React.FC = () => {
                         setShowHabitModal(true);
                       } else {
                         setEditingModule(null);
-                        setModuleForm({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true });
+                        setModuleForm({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
+                        setModuleImageFile(null);
+                        setModuleImagePreview(null);
                         setShowModuleModal(true);
                       }
                     }}
@@ -1069,8 +1103,11 @@ const AdminPanel: React.FC = () => {
                     )}
                     {modules.map(mod => (
                       <div key={mod.id} className="bg-white rounded-xl border border-zinc-200 p-4 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: mod.color + '20' }}>
-                          {mod.icon}
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ backgroundColor: mod.color + '20' }}>
+                          {mod.imageUrl
+                            ? <img src={mod.imageUrl} alt={mod.name} className="w-full h-full object-cover rounded-xl" />
+                            : <span className="text-2xl">{mod.icon}</span>
+                          }
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -1105,12 +1142,40 @@ const AdminPanel: React.FC = () => {
                 {/* Modal de Módulo */}
                 {showModuleModal && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
                       <div className="flex items-center justify-between mb-5">
                         <h3 className="text-lg font-bold text-zinc-900">{editingModule ? 'Editar Módulo' : 'Novo Módulo'}</h3>
                         <button onClick={() => setShowModuleModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg"><X className="w-5 h-5" /></button>
                       </div>
                       <div className="space-y-4">
+                        {/* Imagem do Módulo */}
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-2">Imagem do Módulo</label>
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-xl border-2 border-dashed border-zinc-200 flex items-center justify-center overflow-hidden flex-shrink-0" style={{ backgroundColor: moduleForm.color + '15' }}>
+                              {moduleImagePreview
+                                ? <img src={moduleImagePreview} alt="preview" className="w-full h-full object-cover rounded-xl" />
+                                : <span className="text-3xl">{moduleForm.icon}</span>
+                              }
+                            </div>
+                            <div className="flex-1">
+                              <label className="flex items-center gap-2 px-3 py-2 border border-zinc-200 rounded-lg cursor-pointer hover:bg-zinc-50 text-sm text-zinc-600 transition-colors">
+                                <Upload className="w-4 h-4" />
+                                <span>{moduleImagePreview ? 'Trocar imagem' : 'Carregar imagem'}</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleModuleImageChange} />
+                              </label>
+                              <p className="text-xs text-zinc-400 mt-1">PNG, JPG, WebP — máx. 5MB</p>
+                              {moduleImagePreview && (
+                                <button
+                                  onClick={() => { setModuleImagePreview(null); setModuleImageFile(null); setModuleForm({...moduleForm, imageUrl: null}); }}
+                                  className="text-xs text-red-500 hover:text-red-700 mt-1"
+                                >
+                                  Remover imagem
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                         <div>
                           <label className="block text-sm font-medium text-zinc-700 mb-1">Nome *</label>
                           <input type="text" value={moduleForm.name} onChange={e => setModuleForm({...moduleForm, name: e.target.value})} placeholder="Ex: Pornografia" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -1158,7 +1223,9 @@ const AdminPanel: React.FC = () => {
                         </div>
                         <div className="flex gap-3 pt-2">
                           <button onClick={() => setShowModuleModal(false)} className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50">Cancelar</button>
-                          <button onClick={handleSaveModule} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Salvar</button>
+                          <button onClick={handleSaveModule} disabled={uploadingImage} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                            {uploadingImage ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span> A enviar...</> : 'Salvar'}
+                          </button>
                         </div>
                       </div>
                     </div>
