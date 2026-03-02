@@ -21,6 +21,7 @@ import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
+import { UserProfileDrawer } from "./components/UserProfileDrawer";
 
 // Novos componentes comportamentais
 import { OnboardingBehavioral, type BehavioralProfile } from "./components/OnboardingBehavioral";
@@ -124,7 +125,10 @@ export default function App() {
   const [showRelapseDialog, setShowRelapseDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  // Profile & Settings modal states
+  // Profile Drawer state
+  const [showProfileDrawer, setShowProfileDrawer] = useState(false);
+
+  // Profile & Settings modal states (legado — mantido para compatibilidade)
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [profileName, setProfileName] = useState("");
@@ -558,63 +562,21 @@ export default function App() {
                 </p>
               </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2 hover:bg-gray-100 transition-colors">
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
-                    </div>
-                    <span className="hidden md:inline font-medium">{currentUser?.name}</span>
-                    <ChevronDown className="w-4 h-4 text-gray-400 hidden md:inline" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuLabel className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{currentUser?.name}</p>
-                        <p className="text-xs text-gray-500 font-normal">{currentUser?.email}</p>
-                        {userProfile.plan !== "free" && (
-                          <Badge className={`mt-1 text-xs ${
-                            userProfile.plan === "premium"
-                              ? "bg-gradient-to-r from-purple-500 to-pink-500"
-                              : "bg-gradient-to-r from-amber-500 to-orange-500"
-                          } text-white border-0`}>
-                            {userProfile.plan === "premium" ? "⚡ Premium" : "👑 Elite"}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={handleOpenProfileModal} className="cursor-pointer py-2.5">
-                    <User className="w-4 h-4 mr-3 text-gray-500" />
-                    <span>Meu Perfil</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setActiveTab("pricing")} className="cursor-pointer py-2.5">
-                    <CreditCard className="w-4 h-4 mr-3 text-gray-500" />
-                    <span>Plano Atual</span>
-                    <span className="ml-auto text-xs text-gray-400 capitalize">{userProfile.plan}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setActiveTab("pricing")} className="cursor-pointer py-2.5">
-                    <Receipt className="w-4 h-4 mr-3 text-gray-500" />
-                    <span>Faturamento</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => setShowSettingsModal(true)} className="cursor-pointer py-2.5">
-                    <Settings className="w-4 h-4 mr-3 text-gray-500" />
-                    <span>Configurações</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer py-2.5 text-red-600 focus:text-red-600 focus:bg-red-50">
-                    <LogOut className="w-4 h-4 mr-3" />
-                    <span>Sair da Conta</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Botão do utilizador — abre o drawer */}
+              <button
+                onClick={() => setShowProfileDrawer(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
+                  {userProfile.behavioralProfile?.avatar || currentUser?.avatar ? (
+                    <img src={userProfile.behavioralProfile?.avatar || currentUser?.avatar} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    currentUser?.name?.charAt(0)?.toUpperCase() || "U"
+                  )}
+                </div>
+                <span className="hidden md:inline font-medium text-sm text-gray-700">{currentUser?.name}</span>
+                <ChevronDown className="w-4 h-4 text-gray-400 hidden md:inline" />
+              </button>
             </div>
           </div>
         </div>
@@ -845,6 +807,58 @@ export default function App() {
           <DialogFooter><Button onClick={()=>setShowSettingsModal(false)}>Fechar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* User Profile Drawer */}
+      <UserProfileDrawer
+        isOpen={showProfileDrawer}
+        onClose={() => setShowProfileDrawer(false)}
+        user={{
+          name: currentUser?.name || "",
+          email: currentUser?.email || "",
+          phone: (currentUser as any)?.phone || "",
+          avatar: (currentUser as any)?.avatar || "",
+          bio: (currentUser as any)?.bio || "",
+          plan: userProfile.plan || "free",
+        }}
+        behavioralProfile={userProfile.behavioralProfile}
+        achievements={userProfile.achievements}
+        settings={userSettings as any}
+        onSaveProfile={async (data) => {
+          try {
+            const api = (await import("./services/api")).default;
+            if (data.name && data.name !== currentUser?.name) {
+              await api.updateProfile({ name: data.name });
+              if (updateUser) updateUser({ name: data.name });
+            }
+            // Guardar avatar e bio localmente no perfil
+            const updatedProfile = { ...userProfile, ...data };
+            setUserProfile(updatedProfile);
+            if (currentUser) localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(updatedProfile));
+            toast.success("Perfil atualizado com sucesso!");
+          } catch (error: any) {
+            toast.error(error.message || "Erro ao atualizar perfil");
+          }
+        }}
+        onSaveSettings={(newSettings) => {
+          setUserSettings(newSettings as any);
+          if (currentUser) localStorage.setItem(`pare_settings_${currentUser.email}`, JSON.stringify(newSettings));
+          toast.success("Configurações salvas!");
+        }}
+        onChangeAddictions={() => {
+          // Resetar o onboarding para refazer
+          if (currentUser) {
+            const resetProfile = { ...userProfile, onboardingStep: undefined, behavioralProfile: undefined, suggestedHabits: undefined, weeklySchedule: undefined, currentSeason: undefined };
+            setUserProfile(resetProfile as any);
+            localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(resetProfile));
+            toast.info("Redirecionando para o onboarding...");
+          }
+        }}
+        onUpgradePlan={() => { setActiveTab("pricing"); setShowProfileDrawer(false); }}
+        onOpenChat={() => { setActiveTab("chat"); }}
+        onOpenAchievements={() => { setActiveTab("achievements"); setShowProfileDrawer(false); }}
+        onLogout={handleLogout}
+        onResetProgress={() => { setShowResetDialog(true); }}
+      />
 
       {/* Relapse Dialog (legado) */}
       <AlertDialog open={showRelapseDialog} onOpenChange={setShowRelapseDialog}>
