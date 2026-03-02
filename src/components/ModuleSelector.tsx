@@ -1,17 +1,19 @@
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Eye, Smartphone, Cigarette, Wine, ShoppingCart, Plus, Check, Lock } from "lucide-react";
+import { Plus, Check, Lock, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { API_URL } from "../config/api";
 
-interface Module {
+interface CatalogModule {
   id: string;
   name: string;
-  icon: React.ReactNode;
-  color: string;
-  gradient: string;
   description: string;
+  icon: string;
+  color: string;
+  imageUrl: string | null;
+  requiredPlan: string;
 }
 
 interface ModuleSelectorProps {
@@ -24,48 +26,41 @@ interface ModuleSelectorProps {
   onUpgradePlan: () => void;
 }
 
-const allModules: Module[] = [
-  {
-    id: "pornography",
-    name: "Pornografia",
-    icon: <Eye className="w-6 h-6" />,
-    color: "text-red-600",
-    gradient: "from-red-500 to-pink-600",
-    description: "Supere o vício e recupere sua energia",
-  },
-  {
-    id: "social_media",
-    name: "Redes Sociais",
-    icon: <Smartphone className="w-6 h-6" />,
-    color: "text-blue-600",
-    gradient: "from-blue-500 to-cyan-600",
-    description: "Recupere seu tempo e foco",
-  },
-  {
-    id: "smoking",
-    name: "Cigarro",
-    icon: <Cigarette className="w-6 h-6" />,
-    color: "text-gray-600",
-    gradient: "from-gray-500 to-slate-600",
-    description: "Livre-se do tabagismo",
-  },
-  {
-    id: "alcohol",
-    name: "Álcool",
-    icon: <Wine className="w-6 h-6" />,
-    color: "text-amber-600",
-    gradient: "from-amber-500 to-orange-600",
-    description: "Controle o consumo",
-  },
-  {
-    id: "shopping",
-    name: "Compras Compulsivas",
-    icon: <ShoppingCart className="w-6 h-6" />,
-    color: "text-green-600",
-    gradient: "from-green-500 to-emerald-600",
-    description: "Desenvolva controle financeiro",
-  },
-];
+// Componente de ícone do módulo — usa imagem se disponível, senão emoji
+function ModuleIcon({ module, size = "md" }: { module: CatalogModule; size?: "sm" | "md" | "lg" }) {
+  const sizeClass = size === "sm" ? "w-8 h-8" : size === "lg" ? "w-16 h-16" : "w-12 h-12";
+  const textSize = size === "sm" ? "text-lg" : size === "lg" ? "text-3xl" : "text-2xl";
+  return (
+    <div
+      className={`${sizeClass} rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden`}
+      style={{ backgroundColor: (module.color || "#8b5cf6") + "25" }}
+    >
+      {module.imageUrl ? (
+        <img src={module.imageUrl} alt={module.name} className="w-full h-full object-cover" />
+      ) : (
+        <span className={textSize}>{module.icon || "⭐"}</span>
+      )}
+    </div>
+  );
+}
+
+// Hook para buscar o catálogo de módulos do backend
+function useModuleCatalog() {
+  const [catalog, setCatalog] = useState<CatalogModule[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/modules/catalog`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) setCatalog(data.data.modules);
+      })
+      .catch(err => console.error("Erro ao carregar catálogo de módulos:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { catalog, loading };
+}
 
 export function ModuleSelector({
   activeModules,
@@ -78,23 +73,20 @@ export function ModuleSelector({
 }: ModuleSelectorProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSwitchDialogOpen, setIsSwitchDialogOpen] = useState(false);
+  const { catalog, loading } = useModuleCatalog();
 
-  const availableModules = allModules.filter(m => !activeModules.includes(m.id));
-  const activeModulesList = allModules.filter(m => activeModules.includes(m.id));
-  const currentModule = allModules.find(m => m.id === currentModuleId);
+  const availableModules = catalog.filter(m => !activeModules.includes(m.id));
+  const activeModulesList = catalog.filter(m => activeModules.includes(m.id));
+  const currentModule = catalog.find(m => m.id === currentModuleId);
   const canAddMore = activeModules.length < maxModules;
 
   const getPlanLimits = () => {
     switch (currentPlan) {
-      case "free":
-        return { max: 1, name: "Gratuito" };
-      case "premium":
-        return { max: 3, name: "Premium" };
-      case "elite":
-        return { max: 999, name: "Elite" };
+      case "free":    return { max: 1,   name: "Gratuito" };
+      case "premium": return { max: 3,   name: "Premium" };
+      case "elite":   return { max: 999, name: "Elite" };
     }
   };
-
   const planLimits = getPlanLimits();
 
   return (
@@ -104,9 +96,7 @@ export function ModuleSelector({
         <Dialog open={isSwitchDialogOpen} onOpenChange={setIsSwitchDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="h-10 gap-2 hover:bg-gray-50">
-              <div className={`w-8 h-8 bg-gradient-to-br ${currentModule.gradient} rounded-lg flex items-center justify-center text-white`}>
-                {currentModule.icon}
-              </div>
+              <ModuleIcon module={currentModule} size="sm" />
               <div className="text-left hidden lg:block">
                 <p className="text-xs text-gray-500 leading-none">Módulo Ativo</p>
                 <p className="text-sm font-semibold leading-tight">{currentModule.name}</p>
@@ -137,9 +127,7 @@ export function ModuleSelector({
                   }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${module.gradient} rounded-xl flex items-center justify-center text-white`}>
-                      {module.icon}
-                    </div>
+                    <ModuleIcon module={module} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold">{module.name}</h3>
@@ -174,11 +162,15 @@ export function ModuleSelector({
           <DialogHeader>
             <DialogTitle>Adicionar Novo Módulo</DialogTitle>
             <DialogDescription>
-              Você está no plano <strong>{planLimits.name}</strong> - {activeModules.length}/{planLimits.max} módulos ativos
+              Você está no plano <strong>{planLimits.name}</strong> - {activeModules.length}/{planLimits.max === 999 ? "∞" : planLimits.max} módulos ativos
             </DialogDescription>
           </DialogHeader>
 
-          {!canAddMore ? (
+          {loading ? (
+            <div className="py-12 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+            </div>
+          ) : !canAddMore ? (
             <div className="py-8 text-center space-y-4">
               <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
                 <Lock className="w-8 h-8 text-amber-600" />
@@ -212,9 +204,7 @@ export function ModuleSelector({
                   }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${module.gradient} rounded-xl flex items-center justify-center text-white`}>
-                      {module.icon}
-                    </div>
+                    <ModuleIcon module={module} />
                     <div className="flex-1">
                       <h3 className="font-semibold mb-1">{module.name}</h3>
                       <p className="text-xs text-gray-600 mb-2">{module.description}</p>

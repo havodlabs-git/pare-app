@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
   GET_DASHBOARD: '/api/users/dashboard',
   
   // Modules
+  GET_MODULES_CATALOG: '/api/modules/catalog',
   GET_MODULES: '/api/modules',
   CREATE_MODULE: '/api/modules',
   GET_MODULE: (id) => `/api/modules/${id}`,
