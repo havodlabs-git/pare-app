@@ -161,7 +161,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
   const [step, setStep] = useState(1);
 
   // Vícios carregados do backend (com fallback local)
-  const [addictionsList, setAddictionsList] = useState<{ id: string; label: string; img: string; emoji: string }[]>(ADDICTIONS_FALLBACK);
+  const [addictionsList, setAddictionsList] = useState<{ id: string; label: string; img: string; emoji: string; moduleId?: string }[]>(ADDICTIONS_FALLBACK);
 
   useEffect(() => {
     const API_URL = import.meta.env.VITE_API_URL || 'https://pare-app-backend-295077330394.us-central1.run.app';
@@ -174,6 +174,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
             label: a.name,
             img: a.imageUrl || ADDICTION_IMG_MAP[a.id] || '',
             emoji: a.icon || '⭐',
+            moduleId: a.moduleId || null,
           })));
         }
       })
@@ -239,18 +240,16 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
 
   const handleComplete = () => {
     const { profile, riskScore } = classifyProfile();
-    const moduleIdMap: Record<string, string> = {
-      pornography: "pornography", compulsive_masturbation: "pornography",
-      alcohol: "alcohol", smoking: "smoking", social_media: "social_media",
-      compulsive_eating: "shopping", shopping: "shopping",
-    };
+    // Usar o moduleId do vício seleccionado (vem do backend, sem hardcode)
+    const primaryAddictionData = addictionsList.find(a => a.id === primaryAddiction);
+    const resolvedModuleId = primaryAddictionData?.moduleId || primaryAddiction || 'pornography';
     const behavioralProfile: BehavioralProfile = {
       lgpdAccepted: true, lgpdAcceptedAt: new Date().toISOString(),
       nickname, age, city, addictions, primaryAddiction, intensityMap,
       triggers, postEmotions, interests, daysPerWeek, minutesPerDay,
       preferredPeriod, futureVision, behaviorProfile: profile, riskScore,
     };
-    onComplete(behavioralProfile, moduleIdMap[primaryAddiction] || "pornography");
+    onComplete(behavioralProfile, resolvedModuleId);
   };
 
   // ── Render de cada etapa ───────────────────────────────────────────────────

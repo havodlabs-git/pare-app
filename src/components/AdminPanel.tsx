@@ -101,7 +101,7 @@ const AdminPanel: React.FC = () => {
   const [showHabitModal, setShowHabitModal] = useState(false);
   const [editingAddiction, setEditingAddiction] = useState<any | null>(null);
   const [editingHabit, setEditingHabit] = useState<any | null>(null);
-  const [addictionForm, setAddictionForm] = useState({ label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral' });
+  const [addictionForm, setAddictionForm] = useState({ name: '', label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral', moduleId: '', imageUrl: '' });
   const [habitForm, setHabitForm] = useState({ name: '', description: '', category: 'geral', icon: '⭐', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
 
   // Check if already logged in
@@ -341,14 +341,16 @@ const AdminPanel: React.FC = () => {
   // Handlers de Vícios
   const handleSaveAddiction = async () => {
     try {
+      const addictionName = addictionForm.name || addictionForm.label;
+      const payload = { ...addictionForm, name: addictionName, label: addictionName };
       if (editingAddiction) {
-        await api.put(`/admin/addictions/${editingAddiction.id}`, addictionForm);
+        await api.put(`/admin/addictions/${editingAddiction.id}`, payload);
       } else {
-        await api.post('/admin/addictions', addictionForm);
+        await api.post('/admin/addictions', payload);
       }
       setShowAddictionModal(false);
       setEditingAddiction(null);
-      setAddictionForm({ label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral' });
+      setAddictionForm({ name: '', label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral', moduleId: '', imageUrl: '' });
       loadData();
     } catch (err: any) {
       alert(err.message || 'Erro ao salvar vício');
@@ -357,7 +359,16 @@ const AdminPanel: React.FC = () => {
 
   const handleEditAddiction = (addiction: any) => {
     setEditingAddiction(addiction);
-    setAddictionForm({ label: addiction.label, icon: addiction.icon, color: addiction.color, description: addiction.description || '', category: addiction.category || 'geral' });
+    setAddictionForm({
+      name: addiction.name || addiction.label || '',
+      label: addiction.name || addiction.label || '',
+      icon: addiction.icon || '🔴',
+      color: addiction.color || '#ef4444',
+      description: addiction.description || '',
+      category: addiction.category || 'geral',
+      moduleId: addiction.moduleId || '',
+      imageUrl: addiction.imageUrl || '',
+    });
     setShowAddictionModal(true);
   };
 
@@ -1051,10 +1062,15 @@ const AdminPanel: React.FC = () => {
                           {addiction.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-zinc-900">{addiction.label}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-zinc-900">{addiction.name || addiction.label}</p>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">{addiction.category}</span>
-                            {!addiction.isActive && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">Inativo</span>}
+                            {addiction.moduleId && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600">
+                                → {modules.find(m => m.id === addiction.moduleId)?.name || addiction.moduleId}
+                              </span>
+                            )}
+                            {(addiction.isActive === false || addiction.active === false) && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600">Inativo</span>}
                           </div>
                           {addiction.description && <p className="text-sm text-zinc-500 truncate">{addiction.description}</p>}
                         </div>
@@ -1277,7 +1293,7 @@ const AdminPanel: React.FC = () => {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-zinc-700 mb-1">Nome *</label>
-                          <input type="text" value={addictionForm.label} onChange={e => setAddictionForm({...addictionForm, label: e.target.value})} placeholder="Ex: Pornografia" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          <input type="text" value={addictionForm.name} onChange={e => setAddictionForm({...addictionForm, name: e.target.value, label: e.target.value})} placeholder="Ex: Pornografia" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
@@ -1301,6 +1317,16 @@ const AdminPanel: React.FC = () => {
                             <option value="comportamental">Comportamental</option>
                             <option value="alimentar">Alimentar</option>
                           </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">Módulo Correlacionado</label>
+                          <select value={addictionForm.moduleId} onChange={e => setAddictionForm({...addictionForm, moduleId: e.target.value})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Nenhum</option>
+                            {modules.map(m => (
+                              <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-zinc-400 mt-1">Quando o utilizador seleccionar este vício, este módulo será activado automaticamente.</p>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-zinc-700 mb-1">Descrição</label>
