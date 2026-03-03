@@ -110,6 +110,22 @@ export function getMaxCleanStreak(logs: HabitLog[]): number {
   return maxStreak;
 }
 
+// Helper para calcular dias da temporada
+function getSeasonDays(startDate: string, durationDays: number): string[] {
+  const days: string[] = [];
+  const start = new Date(startDate);
+  const today = new Date();
+  const end = new Date(startDate);
+  end.setDate(end.getDate() + durationDays);
+  const limit = today < end ? today : end;
+  const cur = new Date(start);
+  while (cur <= limit) {
+    days.push(cur.toISOString().split("T")[0]);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return days;
+}
+
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export function SeasonDashboard({
@@ -146,17 +162,24 @@ export function SeasonDashboard({
   const daysRemaining = Math.max(0, totalDays - elapsedDays);
 
   const totalDone = logs.filter((l) => l.status === "done").length;
-  // Recaídas vêm do relapseLogs independente (1 por dia)
   const totalRelapses = relapseLogs.length;
-  // Dias limpos = dias com pelo menos 1 hábito feito E sem recaída registada
+
+  // CORRECÇÃO: Dias limpos = dias SEM recaída (não exige hábito feito)
+  const seasonDays = getSeasonDays(season.startDate, season.durationDays);
+  const cleanDaysCount = seasonDays.filter((day) => {
+    return !relapseLogs.some((r) => r.dateKey === day);
+  }).length;
+
+  // Sequência limpa actual (dias consecutivos sem recaída, de hoje para trás)
   const cleanStreak = (() => {
-    const doneDates = new Set(logs.filter((l) => l.status === "done").map((l) => l.date.split("T")[0]));
-    const relapseDates = new Set(relapseLogs.map((r) => r.dateKey));
-    let streak = 0, maxStreak = 0;
-    for (const date of Array.from(doneDates).sort()) {
-      if (relapseDates.has(date)) { streak = 0; } else { streak++; maxStreak = Math.max(maxStreak, streak); }
+    let streak = 0;
+    const sortedDays = [...seasonDays].sort().reverse();
+    for (const day of sortedDays) {
+      const hasRelapse = relapseLogs.some((r) => r.dateKey === day);
+      if (hasRelapse) break;
+      streak++;
     }
-    return maxStreak;
+    return streak;
   })();
 
   const currentLevelData = LEVELS.find((l) => l.level === points.currentLevel) || LEVELS[0];
@@ -214,7 +237,7 @@ export function SeasonDashboard({
         <div className="grid grid-cols-3 gap-2">
           {[
             { value: totalDone, label: "Hábitos feitos", bg: "bg-white/15" },
-            { value: cleanStreak, label: "Dias limpos", bg: "bg-white/15" },
+            { value: cleanDaysCount, label: "Dias limpos", bg: "bg-white/15" },
             { value: totalRelapses, label: "Recaídas", bg: "bg-white/15" },
           ].map((s) => (
             <div key={s.label} className={`${s.bg} rounded-2xl p-3 text-center backdrop-blur-sm`}>
@@ -410,7 +433,7 @@ export function SeasonDashboard({
                   <h3 className="text-gray-800 font-semibold text-sm">{a.name}</h3>
                   {a.unlocked && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-200 text-amber-700">
-                      ✓ Desbloqueada
+                      Desbloqueada
                     </span>
                   )}
                 </div>
@@ -437,7 +460,7 @@ export function SeasonDashboard({
             {[
               { value: totalDone,     label: "Hábitos feitos",   color: "from-emerald-400 to-green-500",  icon: <CheckCircle2 className="w-5 h-5 text-white" />, bg: "bg-emerald-50 border-emerald-100" },
               { value: totalRelapses, label: "Recaídas",         color: "from-red-400 to-rose-500",       icon: <XCircle className="w-5 h-5 text-white" />,      bg: "bg-red-50 border-red-100" },
-              { value: cleanStreak,   label: "Maior sequência",  color: "from-orange-400 to-amber-500",   icon: <Flame className="w-5 h-5 text-white" />,        bg: "bg-orange-50 border-orange-100" },
+              { value: cleanStreak,   label: "Sequência limpa",  color: "from-orange-400 to-amber-500",   icon: <Flame className="w-5 h-5 text-white" />,        bg: "bg-orange-50 border-orange-100" },
               { value: points.totalPoints, label: "Pontos totais", color: "from-violet-500 to-purple-600", icon: <Zap className="w-5 h-5 text-white" />,         bg: "bg-violet-50 border-violet-100" },
             ].map((s) => (
               <div key={s.label} className={`rounded-2xl p-4 border ${s.bg}`}>
@@ -450,7 +473,8 @@ export function SeasonDashboard({
             ))}
           </div>
 
-          {(totalDone + totalRelapses) > 0 && (
+          {/* Taxa de sucesso corrigida */}
+          {seasonDays.length > 0 && (
             <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">
               <h3 className="text-gray-800 text-sm font-semibold mb-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-violet-500" />
@@ -460,19 +484,19 @@ export function SeasonDashboard({
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="text-emerald-600 font-semibold">Dias limpos</span>
-                    <span className="text-gray-500">{Math.round((totalDone / (totalDone + totalRelapses)) * 100)}%</span>
+                    <span className="text-gray-500">{Math.round((cleanDaysCount / seasonDays.length) * 100)}%</span>
                   </div>
                   <div className="h-2.5 rounded-full overflow-hidden bg-gray-100">
-                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500" style={{ width: `${(totalDone / (totalDone + totalRelapses)) * 100}%` }} />
+                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500" style={{ width: `${(cleanDaysCount / seasonDays.length) * 100}%` }} />
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="text-red-500 font-semibold">Recaídas</span>
-                    <span className="text-gray-500">{Math.round((totalRelapses / (totalDone + totalRelapses)) * 100)}%</span>
+                    <span className="text-gray-500">{seasonDays.length > 0 ? Math.round((totalRelapses / seasonDays.length) * 100) : 0}%</span>
                   </div>
                   <div className="h-2.5 rounded-full overflow-hidden bg-gray-100">
-                    <div className="h-full rounded-full bg-gradient-to-r from-red-400 to-rose-500" style={{ width: `${(totalRelapses / (totalDone + totalRelapses)) * 100}%` }} />
+                    <div className="h-full rounded-full bg-gradient-to-r from-red-400 to-rose-500" style={{ width: `${seasonDays.length > 0 ? (totalRelapses / seasonDays.length) * 100 : 0}%` }} />
                   </div>
                 </div>
               </div>
