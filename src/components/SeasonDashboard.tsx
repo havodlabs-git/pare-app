@@ -456,19 +456,21 @@ export function SeasonDashboard({
       {/* ── Tab: Status ─────────────────────────────────────────────────────── */}
       {activeTab === "stats" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {[
-              { value: totalDone,     label: "Hábitos feitos",   color: "from-emerald-400 to-green-500",  icon: <CheckCircle2 className="w-5 h-5 text-white" />, bg: "bg-emerald-50 border-emerald-100" },
-              { value: totalRelapses, label: "Recaídas",         color: "from-red-400 to-rose-500",       icon: <XCircle className="w-5 h-5 text-white" />,      bg: "bg-red-50 border-red-100" },
-              { value: cleanStreak,   label: "Sequência limpa",  color: "from-orange-400 to-amber-500",   icon: <Flame className="w-5 h-5 text-white" />,        bg: "bg-orange-50 border-orange-100" },
-              { value: points.totalPoints, label: "Pontos totais", color: "from-violet-500 to-purple-600", icon: <Zap className="w-5 h-5 text-white" />,         bg: "bg-violet-50 border-violet-100" },
+              { value: totalDone,     label: "Hábitos feitos",   color: "from-emerald-400 to-green-500",  icon: <CheckCircle2 className="w-4 h-4 text-white" />, bg: "bg-emerald-50 border-emerald-100" },
+              { value: totalRelapses, label: "Recaídas",         color: "from-red-400 to-rose-500",       icon: <XCircle className="w-4 h-4 text-white" />,      bg: "bg-red-50 border-red-100" },
+              { value: cleanStreak,   label: "Sequência limpa",  color: "from-orange-400 to-amber-500",   icon: <Flame className="w-4 h-4 text-white" />,        bg: "bg-orange-50 border-orange-100" },
+              { value: points.totalPoints, label: "Pontos totais", color: "from-violet-500 to-purple-600", icon: <Zap className="w-4 h-4 text-white" />,         bg: "bg-violet-50 border-violet-100" },
             ].map((s) => (
-              <div key={s.label} className={`rounded-2xl p-4 border ${s.bg}`}>
-                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3 shadow`}>
+              <div key={s.label} className={`rounded-xl p-3 border ${s.bg} flex items-center gap-3`}>
+                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center shadow flex-shrink-0`}>
                   {s.icon}
                 </div>
-                <p className="text-3xl font-black text-gray-800">{s.value}</p>
-                <p className="text-gray-400 text-xs mt-0.5">{s.label}</p>
+                <div className="min-w-0">
+                  <p className="text-lg font-black text-gray-800 leading-tight">{s.value}</p>
+                  <p className="text-gray-400 text-[10px] truncate">{s.label}</p>
+                </div>
               </div>
             ))}
           </div>

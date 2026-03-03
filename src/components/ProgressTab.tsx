@@ -128,6 +128,31 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
     return totalScheduled > 0 ? Math.round((totalDone / totalScheduled) * 100) : 0;
   }, [seasonDays, season.habits, logs]);
 
+  // ── CORRECÇÃO REQ-7: Progresso da semana actual ──
+  const weeklyCompletionRate = useMemo(() => {
+    // Calcular início da semana actual (domingo)
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    let weekScheduled = 0;
+    let weekDone = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      const dayStr = getDayKey(d);
+      // Só contar dias até hoje
+      if (dayStr > today) break;
+      const dow = d.getDay();
+      const dayHabits = season.habits.filter((h) => h.daysOfWeek.includes(dow));
+      weekScheduled += dayHabits.length;
+      const dayLogs = logs.filter((l) => l.date.split("T")[0] === dayStr && l.status === "done");
+      weekDone += dayLogs.length;
+    }
+    return { weekScheduled, weekDone, rate: weekScheduled > 0 ? Math.round((weekDone / weekScheduled) * 100) : 0 };
+  }, [season.habits, logs, today]);
+
   // ── Dados para gráfico de dias limpos vs recaídas (período da temporada) ──
   const cleanVsRelapseData = useMemo(() => {
     const weeks: { week: string; limpos: number; recaidas: number }[] = [];
@@ -431,7 +456,28 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
         </div>
       </div>
 
-      {/* ── Gráfico Dias Limpos vs Recaídas (por semana da temporada) ────────── */}
+      {/* ── Progresso da Semana Actual ───────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-gray-800">Progresso da Semana</span>
+          </div>
+          <span className="text-sm font-bold text-emerald-600">{weeklyCompletionRate.rate}%</span>
+        </div>
+        <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-700"
+            style={{ width: `${weeklyCompletionRate.rate}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-1.5 text-[10px] text-gray-400">
+          <span>{weeklyCompletionRate.weekDone} hábitos feitos esta semana</span>
+          <span>{weeklyCompletionRate.weekScheduled} programados</span>
+        </div>
+      </div>
+
+      {/* ── Gráfico Dias Limpos vs Recaídas (por semana da temporada) ──────────── */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow">
@@ -688,7 +734,7 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs font-medium truncate ${isDone ? "text-emerald-700" : isSkipped ? "text-gray-400 line-through" : "text-gray-600"}`}>{habit.name}</p>
                       </div>
-                      <span className="text-[10px] text-gray-400">{habit.timeSlot}</span>
+                      <span className="text-[10px] text-gray-400">{habit.timeSlot} • {habit.durationMinutes}min</span>
                     </div>
                   );
                 })}
@@ -715,7 +761,7 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
           </div>
           <div>
             <h3 className="font-bold text-gray-900 text-sm">Desempenho por Hábito</h3>
-            <p className="text-[10px] text-gray-400">Taxa de conclusão individual</p>
+            <p className="text-[10px] text-gray-400">Feito vs programado na temporada</p>
           </div>
         </div>
         <div className="space-y-2.5">
@@ -736,9 +782,9 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
             return (
               <div key={habit.id}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-gray-700 truncate max-w-[55%]">{habit.name}</span>
+                    <span className="text-xs font-medium text-gray-700 truncate max-w-[55%]">{habit.name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-400">{done}/{scheduled}</span>
+                    <span className="text-[10px] text-gray-400">Feito em {done} de {scheduled} dias</span>
                     <span className={`text-[10px] font-bold ${rate >= 70 ? "text-emerald-600" : rate >= 40 ? "text-amber-600" : "text-red-500"}`}>{rate}%</span>
                   </div>
                 </div>
