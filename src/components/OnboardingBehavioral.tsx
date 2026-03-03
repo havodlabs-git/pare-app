@@ -4,9 +4,11 @@ import { Badge } from "./ui/badge";
 import { Logo } from "./Logo";
 import {
   Check, ChevronRight, ChevronLeft, Shield, User, Target,
-  Zap, Heart, Lightbulb, Clock, Star, Eye, Smartphone,
-  Cigarette, Wine, ShoppingCart, Utensils, Hand, Lock,
-  ArrowRight, Sparkles
+  Zap, Heart, Lightbulb, Clock, Star, Lock,
+  ArrowRight, Sparkles, AlertTriangle, Frown, Meh,
+  Sun, Moon, Sunrise, Briefcase, Brain, CloudRain,
+  Dumbbell, BookOpen, Music, Palette, Trophy as TrophyIcon,
+  Leaf, HandHeart, Flame, Ban, Pencil
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -51,13 +53,13 @@ const ADDICTION_IMG_MAP: Record<string, string> = {
 
 // Fallback local para quando o backend não está disponível
 const ADDICTIONS_FALLBACK = [
-  { id: "pornography",            label: "Pornografia",             img: "/icons/onboarding/habit-porn.png",     emoji: "🔞" },
-  { id: "compulsive_masturbation",label: "Masturbação compulsiva",  img: "/icons/onboarding/habit-porn.png",     emoji: "🚫" },
-  { id: "alcohol",                label: "Álcool",                  img: "/icons/onboarding/habit-alcohol.png",  emoji: "🍷" },
-  { id: "smoking",                label: "Tabagismo",               img: "/icons/onboarding/habit-smoking.png",  emoji: "🚬" },
-  { id: "social_media",           label: "Redes sociais",           img: "/icons/onboarding/habit-social.png",   emoji: "📱" },
-  { id: "compulsive_eating",      label: "Alimentação compulsiva",  img: "/icons/onboarding/habit-food.png",     emoji: "🍔" },
-  { id: "shopping",               label: "Compras compulsivas",     img: "/icons/onboarding/habit-shopping.png", emoji: "🛒" },
+  { id: "pornography",            label: "Pornografia",             img: "/icons/onboarding/habit-porn.png",     moduleId: null },
+  { id: "compulsive_masturbation",label: "Masturbação compulsiva",  img: "/icons/onboarding/habit-porn.png",     moduleId: null },
+  { id: "alcohol",                label: "Álcool",                  img: "/icons/onboarding/habit-alcohol.png",  moduleId: null },
+  { id: "smoking",                label: "Tabagismo",               img: "/icons/onboarding/habit-smoking.png",  moduleId: null },
+  { id: "social_media",           label: "Redes sociais",           img: "/icons/onboarding/habit-social.png",   moduleId: null },
+  { id: "compulsive_eating",      label: "Alimentação compulsiva",  img: "/icons/onboarding/habit-food.png",     moduleId: null },
+  { id: "shopping",               label: "Compras compulsivas",     img: "/icons/onboarding/habit-shopping.png", moduleId: null },
 ];
 
 const INTENSITY_LABELS: Record<number, { label: string; color: string }> = {
@@ -69,32 +71,32 @@ const INTENSITY_LABELS: Record<number, { label: string; color: string }> = {
 };
 
 const TRIGGERS = [
-  { label: "Quando estou estressado",  emoji: "😤" },
-  { label: "Quando me sinto sozinho",  emoji: "😔" },
-  { label: "À noite",                  emoji: "🌙" },
-  { label: "Após o trabalho",          emoji: "💼" },
-  { label: "Quando estou ansioso",     emoji: "😰" },
-  { label: "Quando estou entediado",   emoji: "😑" },
+  { label: "Quando estou estressado",  icon: AlertTriangle },
+  { label: "Quando me sinto sozinho",  icon: User },
+  { label: "À noite",                  icon: Moon },
+  { label: "Após o trabalho",          icon: Briefcase },
+  { label: "Quando estou ansioso",     icon: Brain },
+  { label: "Quando estou entediado",   icon: CloudRain },
 ];
 
 const POST_EMOTIONS = [
-  { label: "Culpa",       emoji: "😞" },
-  { label: "Tristeza",    emoji: "😢" },
-  { label: "Frustração",  emoji: "😤" },
-  { label: "Indiferença", emoji: "😶" },
-  { label: "Vergonha",    emoji: "🫣" },
+  { label: "Culpa",       icon: Frown },
+  { label: "Tristeza",    icon: CloudRain },
+  { label: "Frustração",  icon: AlertTriangle },
+  { label: "Indiferença", icon: Meh },
+  { label: "Vergonha",    icon: Shield },
 ];
 
 const INTERESTS = [
-  { label: "Academia",        img: "/icons/onboarding/interest-gym.png",        emoji: "💪" },
-  { label: "Leitura",         img: "/icons/onboarding/interest-reading.png",    emoji: "📚" },
-  { label: "Música",          img: "/icons/onboarding/interest-music.png",      emoji: "🎵" },
-  { label: "Meditação",       img: "/icons/onboarding/interest-meditation.png", emoji: "🧘" },
-  { label: "Artes",           img: "/icons/onboarding/interest-art.png",        emoji: "🎨" },
-  { label: "Esportes",        img: "/icons/onboarding/interest-sports.png",     emoji: "⚽" },
-  { label: "Culinária",       img: "/icons/onboarding/interest-cooking.png",    emoji: "🍳" },
-  { label: "Natureza",        img: "/icons/onboarding/interest-nature.png",     emoji: "🌿" },
-  { label: "Voluntariado",    img: "/icons/onboarding/interest-volunteer.png",  emoji: "🤝" },
+  { label: "Academia",        img: "/icons/onboarding/interest-gym.png",        icon: Dumbbell },
+  { label: "Leitura",         img: "/icons/onboarding/interest-reading.png",    icon: BookOpen },
+  { label: "Música",          img: "/icons/onboarding/interest-music.png",      icon: Music },
+  { label: "Meditação",       img: "/icons/onboarding/interest-meditation.png", icon: Leaf },
+  { label: "Artes",           img: "/icons/onboarding/interest-art.png",        icon: Palette },
+  { label: "Esportes",        img: "/icons/onboarding/interest-sports.png",     icon: TrophyIcon },
+  { label: "Culinária",       img: "/icons/onboarding/interest-cooking.png",    icon: Flame },
+  { label: "Natureza",        img: "/icons/onboarding/interest-nature.png",     icon: Leaf },
+  { label: "Voluntariado",    img: "/icons/onboarding/interest-volunteer.png",  icon: HandHeart },
 ];
 
 const STEP_CONFIG = [
@@ -161,7 +163,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
   const [step, setStep] = useState(1);
 
   // Vícios carregados do backend (com fallback local)
-  const [addictionsList, setAddictionsList] = useState<{ id: string; label: string; img: string; emoji: string; moduleId?: string }[]>(ADDICTIONS_FALLBACK);
+  const [addictionsList, setAddictionsList] = useState<{ id: string; label: string; img: string; moduleId?: string | null }[]>(ADDICTIONS_FALLBACK);
 
   useEffect(() => {
     const API_URL = import.meta.env.VITE_API_URL || 'https://pare-app-backend-295077330394.us-central1.run.app';
@@ -173,7 +175,6 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
             id: a.id,
             label: a.name,
             img: a.imageUrl || ADDICTION_IMG_MAP[a.id] || '',
-            emoji: a.icon || '⭐',
             moduleId: a.moduleId || null,
           })));
         }
@@ -240,7 +241,6 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
 
   const handleComplete = () => {
     const { profile, riskScore } = classifyProfile();
-    // Usar o moduleId do vício seleccionado (vem do backend, sem hardcode)
     const primaryAddictionData = addictionsList.find(a => a.id === primaryAddiction);
     const resolvedModuleId = primaryAddictionData?.moduleId || primaryAddiction || 'pornography';
     const behavioralProfile: BehavioralProfile = {
@@ -265,17 +265,17 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
               <p className="text-gray-300 text-sm leading-relaxed">
                 Este é um ambiente <span className="text-white font-semibold">seguro e confidencial</span>. Para
                 personalizarmos sua jornada, precisamos tratar alguns dados comportamentais com base na{" "}
-                <span className="text-purple-300 font-medium">LGPD (Lei nº 13.709/2018)</span>.
+                <span className="text-purple-300 font-medium">LGPD (Lei n.º 13.709/2018)</span>.
               </p>
 
               <div className="grid grid-cols-3 gap-2 py-2">
                 {[
-                  { icon: "🔒", text: "Dados criptografados" },
-                  { icon: "🚫", text: "Sem venda de dados" },
-                  { icon: "✏️", text: "Exclusão a qualquer momento" },
+                  { icon: Lock, text: "Dados criptografados" },
+                  { icon: Ban, text: "Sem venda de dados" },
+                  { icon: Pencil, text: "Exclusão a qualquer momento" },
                 ].map((item) => (
                   <div key={item.text} className="flex flex-col items-center gap-1.5 bg-white/5 rounded-2xl p-3 text-center border border-white/10">
-                    <span className="text-xl">{item.icon}</span>
+                    <item.icon className="w-5 h-5 text-purple-400" />
                     <span className="text-xs text-gray-400 leading-tight">{item.text}</span>
                   </div>
                 ))}
@@ -415,7 +415,11 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                       if (!updated.includes(primaryAddiction)) setPrimaryAddiction("");
                     }}
                   >
-                    <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
+                    {a.img ? (
+                      <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
+                    ) : (
+                      <Target className="w-5 h-5 text-rose-400 flex-shrink-0" />
+                    )}
                     <span className="font-medium text-sm">{a.label}</span>
                   </SelectChip>
                 );
@@ -424,8 +428,8 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
 
             {addictions.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-white/10">
-                <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
-                  ⭐ Qual impacta mais sua vida hoje?
+                <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5" /> Qual impacta mais sua vida hoje?
                 </p>
                 <div className="space-y-2">
                   {addictions.map((id) => {
@@ -437,7 +441,11 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                         color="amber"
                         onClick={() => setPrimaryAddiction(id)}
                       >
-                        <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
+                        {a.img ? (
+                          <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
+                        ) : (
+                          <Target className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                        )}
                         <span className="font-medium text-sm">{a.label}</span>
                         {primaryAddiction === id && (
                           <Badge className="ml-auto bg-amber-500/80 text-white border-0 text-xs px-2">
@@ -463,7 +471,11 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
               return (
                 <div key={id} className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
+                    {a.img ? (
+                      <img src={a.img} alt={a.label} className="w-7 h-7 object-contain flex-shrink-0" />
+                    ) : (
+                      <Target className="w-5 h-5 text-orange-400 flex-shrink-0" />
+                    )}
                     <span className="text-sm font-semibold text-white">{a.label}</span>
                   </div>
                   <div className="grid grid-cols-5 gap-2">
@@ -510,7 +522,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                     color="pink"
                     onClick={() => setTriggers(toggle(triggers, t.label))}
                   >
-                    <span className="text-lg leading-none">{t.emoji}</span>
+                    <t.icon className="w-4.5 h-4.5 text-current opacity-70 flex-shrink-0" />
                     <span className="text-sm font-medium">{t.label}</span>
                   </SelectChip>
                 ))}
@@ -530,7 +542,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                         : "border-white/10 bg-white/5 text-gray-400 hover:border-white/25 hover:text-gray-200"
                     }`}
                   >
-                    <span>{e.emoji}</span> {e.label}
+                    <e.icon className="w-3.5 h-3.5" /> {e.label}
                   </button>
                 ))}
               </div>
@@ -621,9 +633,9 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Manhã", emoji: "🌅" },
-                  { label: "Tarde", emoji: "☀️" },
-                  { label: "Noite", emoji: "🌙" },
+                  { label: "Manhã", icon: Sunrise },
+                  { label: "Tarde", icon: Sun },
+                  { label: "Noite", icon: Moon },
                 ].map((p) => (
                   <button
                     key={p.label}
@@ -634,7 +646,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
                         : "border-white/10 bg-white/5 text-gray-400 hover:border-white/25 hover:text-gray-200"
                     }`}
                   >
-                    <span className="text-2xl">{p.emoji}</span>
+                    <p.icon className="w-6 h-6" />
                     <span>{p.label}</span>
                   </button>
                 ))}
@@ -661,7 +673,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
               <div className="flex items-start gap-2.5 px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
                 <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-300 font-medium leading-relaxed">
-                  Essa é a sua versão futura. Vamos construí-la a partir de hoje. 🚀
+                  Essa é a sua versão futura. Vamos construí-la a partir de hoje.
                 </p>
               </div>
             )}
@@ -784,7 +796,7 @@ export function OnboardingBehavioral({ onComplete }: OnboardingBehavioralProps) 
           >
             {step === TOTAL_STEPS ? (
               <span className="flex items-center gap-2">
-                Começar Minha Jornada <Sparkles className="w-5 h-5" />
+                Começar Minha Jornada <ArrowRight className="w-5 h-5" />
               </span>
             ) : (
               <span className="flex items-center gap-2">

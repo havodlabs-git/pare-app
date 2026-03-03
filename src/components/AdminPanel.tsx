@@ -93,7 +93,7 @@ const AdminPanel: React.FC = () => {
   const [contentSubTab, setContentSubTab] = useState<'addictions' | 'habits' | 'modules'>('addictions');
   const [showModuleModal, setShowModuleModal] = useState(false);
   const [editingModule, setEditingModule] = useState<any | null>(null);
-  const [moduleForm, setModuleForm] = useState<{ name: string; description: string; icon: string; color: string; category: string; requiredPlan: string; isActive: boolean; imageUrl: string | null }>({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
+  const [moduleForm, setModuleForm] = useState<{ name: string; description: string; icon: string; color: string; category: string; requiredPlan: string; isActive: boolean; imageUrl: string | null }>({ name: '', description: '', icon: '', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
   const [moduleImageFile, setModuleImageFile] = useState<File | null>(null);
   const [moduleImagePreview, setModuleImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -101,8 +101,8 @@ const AdminPanel: React.FC = () => {
   const [showHabitModal, setShowHabitModal] = useState(false);
   const [editingAddiction, setEditingAddiction] = useState<any | null>(null);
   const [editingHabit, setEditingHabit] = useState<any | null>(null);
-  const [addictionForm, setAddictionForm] = useState({ name: '', label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral', moduleId: '', imageUrl: '' });
-  const [habitForm, setHabitForm] = useState({ name: '', description: '', category: 'geral', icon: '⭐', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
+  const [addictionForm, setAddictionForm] = useState({ name: '', label: '', icon: '', color: '#ef4444', description: '', category: 'geral', moduleId: '', imageUrl: '' });
+  const [habitForm, setHabitForm] = useState({ name: '', description: '', category: 'geral', icon: '', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
 
   // Check if already logged in
   useEffect(() => {
@@ -350,7 +350,7 @@ const AdminPanel: React.FC = () => {
       }
       setShowAddictionModal(false);
       setEditingAddiction(null);
-      setAddictionForm({ name: '', label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral', moduleId: '', imageUrl: '' });
+      setAddictionForm({ name: '', label: '', icon: '', color: '#ef4444', description: '', category: 'geral', moduleId: '', imageUrl: '' });
       loadData();
     } catch (err: any) {
       alert(err.message || 'Erro ao salvar vício');
@@ -362,7 +362,7 @@ const AdminPanel: React.FC = () => {
     setAddictionForm({
       name: addiction.name || addiction.label || '',
       label: addiction.name || addiction.label || '',
-      icon: addiction.icon || '🔴',
+      icon: addiction.icon || '',
       color: addiction.color || '#ef4444',
       description: addiction.description || '',
       category: addiction.category || 'geral',
@@ -393,7 +393,7 @@ const AdminPanel: React.FC = () => {
       }
       setShowHabitModal(false);
       setEditingHabit(null);
-      setHabitForm({ name: '', description: '', category: 'geral', icon: '⭐', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
+      setHabitForm({ name: '', description: '', category: 'geral', icon: '', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
       loadData();
     } catch (err: any) {
       alert(err.message || 'Erro ao salvar hábito');
@@ -452,7 +452,7 @@ const AdminPanel: React.FC = () => {
       }
       setShowModuleModal(false);
       setEditingModule(null);
-      setModuleForm({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
+      setModuleForm({ name: '', description: '', icon: '', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
       setModuleImageFile(null);
       setModuleImagePreview(null);
       loadData();
@@ -999,15 +999,15 @@ const AdminPanel: React.FC = () => {
                     onClick={() => {
                       if (contentSubTab === 'addictions') {
                         setEditingAddiction(null);
-                        setAddictionForm({ label: '', icon: '🔴', color: '#ef4444', description: '', category: 'geral' });
+                        setAddictionForm({ name: '', label: '', icon: '', color: '#ef4444', description: '', category: 'geral', moduleId: '', imageUrl: '' });
                         setShowAddictionModal(true);
                       } else if (contentSubTab === 'habits') {
                         setEditingHabit(null);
-                        setHabitForm({ name: '', description: '', category: 'geral', icon: '⭐', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
+                        setHabitForm({ name: '', description: '', category: 'geral', icon: '', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
                         setShowHabitModal(true);
                       } else {
                         setEditingModule(null);
-                        setModuleForm({ name: '', description: '', icon: '⭐', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
+                        setModuleForm({ name: '', description: '', icon: '', color: '#8b5cf6', category: 'comportamental', requiredPlan: 'free', isActive: true, imageUrl: null });
                         setModuleImageFile(null);
                         setModuleImagePreview(null);
                         setShowModuleModal(true);
@@ -1298,7 +1298,7 @@ const AdminPanel: React.FC = () => {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-sm font-medium text-zinc-700 mb-1">Emoji/Ícone</label>
-                            <input type="text" value={addictionForm.icon} onChange={e => setAddictionForm({...addictionForm, icon: e.target.value})} placeholder="🔴" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            <input type="text" value={addictionForm.icon} onChange={e => setAddictionForm({...addictionForm, icon: e.target.value})} placeholder="Ícone" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-zinc-700 mb-1">Cor</label>
@@ -1519,7 +1519,7 @@ const AdminPanel: React.FC = () => {
                       newRole === 'user' ? 'border-indigo-500 bg-indigo-50' : 'border-zinc-200 hover:border-zinc-300'
                     }`}
                   >
-                    <div className="text-lg mb-1">👤</div>
+                    <div className="text-lg mb-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
                     <div className="text-xs font-medium">Utilizador</div>
                     <div className="text-xs text-zinc-500">Normal</div>
                   </button>
@@ -1529,7 +1529,7 @@ const AdminPanel: React.FC = () => {
                       newRole === 'psychologist' ? 'border-teal-500 bg-teal-50' : 'border-zinc-200 hover:border-zinc-300'
                     }`}
                   >
-                    <div className="text-lg mb-1">🧠</div>
+                    <div className="text-lg mb-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 6V2H8"/><path d="m8 18-4 4V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2Z"/></svg></div>
                     <div className="text-xs font-medium">Psicólogo</div>
                     <div className="text-xs text-zinc-500">Portal prof.</div>
                   </button>
@@ -1539,7 +1539,7 @@ const AdminPanel: React.FC = () => {
                       newRole === 'admin' ? 'border-red-500 bg-red-50' : 'border-zinc-200 hover:border-zinc-300'
                     }`}
                   >
-                    <div className="text-lg mb-1">🛡️</div>
+                    <div className="text-lg mb-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></div>
                     <div className="text-xs font-medium">Admin</div>
                     <div className="text-xs text-zinc-500">Acesso total</div>
                   </button>
@@ -1549,7 +1549,7 @@ const AdminPanel: React.FC = () => {
               {/* Info da role admin */}
               {newRole === 'admin' && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-sm font-medium text-red-700 mb-1">🛡️ Role Admin — Acesso Total</p>
+                  <p className="text-sm font-medium text-red-700 mb-1">Role Admin — Acesso Total</p>
                   <ul className="text-xs text-red-600 space-y-0.5">
                     <li>✓ Plano Elite vitalício (automático)</li>
                     <li>✓ Acesso ao Painel Admin</li>

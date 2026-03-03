@@ -280,7 +280,7 @@ export default function App() {
     };
     setUserProfile(updated);
     localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(updated));
-    toast.success("🎉 Sua jornada começa agora! Boa sorte na sua temporada!");
+    toast.success("Sua jornada começa agora! Boa sorte na sua temporada!");
   };
 
   // ── Handlers de Hábitos Diários ───────────────────────────────────────────
@@ -313,7 +313,7 @@ export default function App() {
       (a, i) => a.unlocked && !(userProfile.achievements || [])[i]?.unlocked
     );
     newlyUnlocked.forEach((a) => {
-      toast.success(`🏆 Conquista desbloqueada: ${a.name}!`);
+      toast.success(`Conquista desbloqueada: ${a.name}!`);
     });
 
     const updated: UserProfile = {
@@ -324,7 +324,7 @@ export default function App() {
 
     setUserProfile(updated);
 
-    if (status === "done") toast.success("+10 pontos! Hábito concluído! 💪");
+    if (status === "done") toast.success("+10 pontos! Hábito concluído!");
     else if (status === "skipped") toast.info("Hábito pulado. Amanhã é um novo dia.");
   };
 
@@ -347,7 +347,7 @@ export default function App() {
     };
     setUserProfile(updated);
     localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(updated));
-    toast.info("⚠️ Recaída registada. Reconhecer é o primeiro passo. Continue!");
+    toast.info("Recaída registada. Reconhecer é o primeiro passo. Continue!");
   };
 
   // ── Handlers de Perfil e Configurações ──────────────────────────────────
@@ -439,7 +439,7 @@ export default function App() {
     if (plan === "free") {
       toast.info("Plano alterado para Gratuito");
     } else {
-      toast.success(`🎉 Bem-vindo ao plano ${plan === "premium" ? "Premium" : "Elite"}!`);
+      toast.success(`Bem-vindo ao plano ${plan === "premium" ? "Premium" : "Elite"}!`);
     }
     setActiveTab("dashboard");
   };
@@ -578,7 +578,7 @@ export default function App() {
                       : "bg-gradient-to-r from-amber-500 to-orange-500"
                   } text-white border-0`}
                 >
-                  {userProfile.plan === "premium" ? "⚡ Premium" : "👑 Elite"}
+                  {userProfile.plan === "premium" ? "Premium" : "Elite"}
                 </Badge>
               )}
 

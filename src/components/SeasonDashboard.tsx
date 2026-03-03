@@ -177,7 +177,7 @@ export function SeasonDashboard({
       {/* ── Top Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-gray-500 text-sm">Olá, {profile.nickname} 👋</p>
+          <p className="text-gray-500 text-sm">Olá, {profile.nickname}</p>
           <h1 className="text-xl font-bold text-gray-900">{season.name}</h1>
         </div>
         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${currentLevelData.color} shadow-md`}>

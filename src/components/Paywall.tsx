@@ -336,7 +336,7 @@ const Paywall: React.FC<PaywallProps> = ({
 
         {/* Footer */}
         <div className="border-t p-6 text-center text-sm text-gray-500">
-          <p>🔒 Pagamento 100% seguro via Stripe. Cancele quando quiser.</p>
+          <p>Pagamento 100% seguro via Stripe. Cancele quando quiser.</p>
           <p className="mt-2">
             Ao assinar, você concorda com nossos{' '}
             <a href="#" className="text-indigo-600 hover:underline">Termos de Uso</a>

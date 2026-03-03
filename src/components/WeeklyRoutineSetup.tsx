@@ -193,7 +193,7 @@ export function WeeklyRoutineSetup({ habits, onComplete }: WeeklyRoutineSetupPro
             onClick={handleConfirmSeason}
             className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white border-0"
           >
-            Iniciar Temporada 🔥
+            Iniciar Temporada
           </Button>
         </div>
       </div>

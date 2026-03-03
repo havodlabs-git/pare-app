@@ -201,7 +201,7 @@ export function UserProfileDrawer({
                 user.plan === "premium" ? "bg-violet-200 text-violet-800" :
                 "bg-white/20 text-white"
               }`}>
-                {user.plan === "elite" ? "👑 Elite" : user.plan === "premium" ? "⚡ Premium" : "🌱 Gratuito"}
+                {user.plan === "elite" ? "Elite" : user.plan === "premium" ? "Premium" : "Gratuito"}
               </div>
             </div>
           </div>

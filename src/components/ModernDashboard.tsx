@@ -284,7 +284,7 @@ export function ModernDashboard({
           <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
             <Check className="w-5 h-5 text-white" />
           </div>
-          <span className="text-base">Hoje Estou Limpo ✓</span>
+          <span className="text-base">Hoje Estou Limpo</span>
           <div className="absolute inset-0 rounded-2xl bg-white/0 group-hover:bg-white/5 transition-colors" />
         </button>
       </div>

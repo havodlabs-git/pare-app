@@ -232,7 +232,7 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
   if (!isPremium) {
     return (
       <div style={styles.premiumGate}>
-        <div style={styles.premiumIcon}>💬</div>
+        <div style={styles.premiumIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg></div>
         <h2 style={styles.premiumTitle}>Chat com Psicólogos</h2>
         <p style={styles.premiumText}>
           Converse em tempo real com psicólogos especializados em vícios e comportamentos compulsivos.
@@ -390,13 +390,13 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
                 onClick={sendMessage}
                 disabled={sending || !newMessage.trim()}
               >
-                {sending ? '...' : '➤'}
+                {sending ? '...' : '›'}
               </button>
             </div>
           </>
         ) : (
           <div style={styles.noChatSelected}>
-            <div style={styles.noChatIcon}>💬</div>
+            <div style={styles.noChatIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg></div>
             <h3>Selecione uma conversa</h3>
             <p>Ou inicie uma nova conversa com um psicólogo</p>
           </div>
@@ -413,7 +413,7 @@ const Chat: React.FC<ChatProps> = ({ userPlan, userId, userName, onUpgrade }) =>
                 style={styles.closeButton}
                 onClick={() => setShowProfessionalList(false)}
               >
-                ✕
+                ×
               </button>
             </div>
             <div style={styles.professionalList}>

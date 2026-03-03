@@ -388,16 +388,9 @@ export function HabitSuggestions({ profile, onComplete }: HabitSuggestionsProps)
                     </div>
                     <p className="text-sm text-gray-400 mb-2">{h.description}</p>
                     <div className="flex items-center gap-3 text-xs text-gray-400">
-                      <span>📅 {h.frequencyPerWeek}x/semana</span>
-                      <span>⏱ {h.durationMinutes} min</span>
-                      <span>
-                        {h.suggestedPeriod === "Manhã"
-                          ? "🌅"
-                          : h.suggestedPeriod === "Tarde"
-                          ? "☀️"
-                          : "🌙"}{" "}
-                        {h.suggestedPeriod}
-                      </span>
+                      <span>{h.frequencyPerWeek}x/semana</span>
+                      <span>{h.durationMinutes} min</span>
+                      <span>{h.suggestedPeriod}</span>
                     </div>
                   </div>
 
