@@ -181,8 +181,11 @@ export default function App() {
       } else {
         // Sem dados locais — buscar do backend (outro navegador)
         setLoadingProfile(true);
+        // Garantir que o token está actualizado antes da chamada
+        const token = localStorage.getItem('pare_token');
+        if (token) api.token = token;
         api.getAppData().then((res: any) => {
-          if (res?.data) {
+          if (res?.data && res.data.onboardingStep) {
             const remoteProfile = res.data;
             // Sincronizar plano
             if (currentUser.plan && remoteProfile.plan !== currentUser.plan) {
@@ -191,9 +194,12 @@ export default function App() {
             }
             localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(remoteProfile));
             setUserProfile(remoteProfile);
+          } else {
+            // Backend retornou data:null — utilizador novo, vai para onboarding
+            setUserProfile(null);
           }
         }).catch(() => {
-          // Sem dados no backend — é um utilizador novo, vai para onboarding
+          // Erro na chamada — utilizador novo ou sem conexão
           setUserProfile(null);
         }).finally(() => {
           setLoadingProfile(false);
