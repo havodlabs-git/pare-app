@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { SimpleToastContainer, ToastMessage } from '../components/SimpleToast';
+import { StyledNotificationContainer, ToastMessage } from '../components/StyledNotification';
 
 interface ToastContextType {
   success: (message: string) => void;
@@ -47,7 +47,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <SimpleToastContainer toasts={toasts} onClose={removeToast} />
+      <StyledNotificationContainer toasts={toasts} onClose={removeToast} />
     </ToastContext.Provider>
   );
 };
