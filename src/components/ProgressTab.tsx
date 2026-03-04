@@ -154,6 +154,7 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
   }, [season.habits, logs, today]);
 
   // ── Dados para gráfico de dias limpos vs recaídas (período da temporada) ──
+  // CORRECÇÃO: Conta o total de registros de recaída por semana (não apenas dias com recaída)
   const cleanVsRelapseData = useMemo(() => {
     const weeks: { week: string; limpos: number; recaidas: number }[] = [];
     for (let i = 0; i < seasonDays.length; i += 7) {
@@ -162,10 +163,11 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
       let limpos = 0;
       let recaidas = 0;
       for (const day of chunk) {
-        const hasRelapse = relapseLogs.some((r) => r.dateKey === day);
-        if (hasRelapse) {
-          recaidas++;
-        } else {
+        // Contar TODOS os registros de recaída nesse dia (não apenas se houve)
+        const dayRelapseCount = relapseLogs.filter((r) => r.dateKey === day).length;
+        recaidas += dayRelapseCount;
+        // Dia limpo = dia sem nenhuma recaída
+        if (dayRelapseCount === 0) {
           limpos++;
         }
       }
