@@ -192,7 +192,6 @@ export function SeasonDashboard({
   const todayTotal = todayHabits.length;
   const todayProgress = todayTotal > 0 ? Math.round((todayDoneCount / todayTotal) * 100) : 0;
 
-  const WEEK_DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
   return (
     <div className="space-y-4">
@@ -349,36 +348,6 @@ export function SeasonDashboard({
             );
           })()}
 
-          {/* Weekly overview */}
-          <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">
-            <h3 className="text-gray-800 text-sm font-semibold mb-3 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-violet-500" />
-              Visão da Semana
-            </h3>
-            <div className="grid grid-cols-7 gap-1.5">
-              {WEEK_DAYS.map((d, i) => {
-                const isToday = i === todayDayOfWeek;
-                const hasHabits = season.habits.some((h) => h.daysOfWeek.includes(i));
-                return (
-                  <div key={i} className="text-center">
-                    <p className={`text-[10px] mb-1.5 font-semibold ${isToday ? "text-violet-600" : "text-gray-400"}`}>{d}</p>
-                    <div
-                      className={`h-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${
-                        isToday
-                          ? "text-white shadow-md shadow-violet-200"
-                          : hasHabits
-                          ? "text-gray-400 bg-gray-100"
-                          : "text-gray-200 bg-gray-50"
-                      }`}
-                      style={isToday ? { background: "linear-gradient(135deg, #7c3aed, #ec4899)" } : {}}
-                    >
-                      {hasHabits ? (isToday ? "●" : "○") : "·"}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
           {/* Community CTA */}
           <button
