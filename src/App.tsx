@@ -37,6 +37,7 @@ import {
   getMaxCleanStreak,
 } from "./components/SeasonDashboard";
 import { ProgressTab } from "./components/ProgressTab";
+import { AvatarEspelho } from "./components/AvatarEspelho";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -653,6 +654,16 @@ export default function App() {
             {/* ── Início ─────────────────────────────────────────────────────── */}
             <TabsContent value="dashboard">
               {hasSeason ? (
+                <div className="space-y-6">
+                <AvatarEspelho
+                  habitLogs={userProfile.habitLogs || []}
+                  relapseLogs={userProfile.relapseLogs || []}
+                  seasonStartDate={userProfile.currentSeason!.startDate}
+                  seasonDurationDays={userProfile.currentSeason!.durationDays}
+                  userAvatar={userProfile.behavioralProfile?.avatar || (currentUser as any)?.avatar}
+                  userName={(currentUser as any)?.name || "Usuário"}
+                  onOpenForum={() => setActiveTab("forum")}
+                />
                 <SeasonDashboard
                   season={userProfile.currentSeason!}
                   profile={userProfile.behavioralProfile!}
@@ -665,6 +676,7 @@ export default function App() {
                   onViewForum={() => setActiveTab("forum")}
                   onViewStats={() => setActiveTab("stats")}
                 />
+                </div>
               ) : (
                 <ModernDashboard
                   dayCount={currentModule.dayCount}
