@@ -255,8 +255,11 @@ export function HabitSuggestions({ profile, onComplete }: HabitSuggestionsProps)
 
           {/* Badges do perfil */}
           <div className="flex justify-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-300 border border-red-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-300 border border-red-500/20 animate-[riskPulse_2s_ease-in-out_infinite] shadow-[0_0_8px_rgba(239,68,68,0.3)]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
               Risco {profile.riskScore}/100
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20">
