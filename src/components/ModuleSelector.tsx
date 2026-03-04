@@ -104,14 +104,15 @@ export function ModuleSelector({
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Alternar Módulo</DialogTitle>
               <DialogDescription>
                 Escolha qual módulo você deseja acompanhar agora. Seus dados serão mantidos.
               </DialogDescription>
             </DialogHeader>
 
+            <div className="flex-1 overflow-y-auto pr-1 -mr-1 scrollbar-thin" style={{ maxHeight: 'calc(85vh - 140px)' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               {activeModulesList.map((module) => (
                 <Card
@@ -141,6 +142,7 @@ export function ModuleSelector({
                 </Card>
               ))}
             </div>
+            </div>
           </DialogContent>
         </Dialog>
       )}
@@ -158,14 +160,15 @@ export function ModuleSelector({
           </Button>
         </DialogTrigger>
 
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Adicionar Novo Módulo</DialogTitle>
             <DialogDescription>
               Você está no plano <strong>{planLimits.name}</strong> - {activeModules.length}/{planLimits.max === 999 ? "∞" : planLimits.max} módulos ativos
             </DialogDescription>
           </DialogHeader>
 
+          <div className="flex-1 overflow-y-auto pr-1 -mr-1 scrollbar-thin" style={{ maxHeight: 'calc(85vh - 140px)' }}>
           {loading ? (
             <div className="py-12 flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
@@ -224,6 +227,7 @@ export function ModuleSelector({
               )}
             </div>
           )}
+          </div>
         </DialogContent>
       </Dialog>
 
