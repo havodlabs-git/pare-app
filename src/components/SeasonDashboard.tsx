@@ -188,9 +188,16 @@ export function SeasonDashboard({
     ? ((points.totalPoints - currentLevelData.minPoints) / (nextLevelData.minPoints - currentLevelData.minPoints)) * 100
     : 100;
 
-  const todayDoneCount = todayLogs.filter((l) => l.status === "done").length;
+  // Contar apenas logs "done" cujo habitId corresponde a um hábito programado para hoje (evita duplicados/órfãos)
+  const todayHabitIds = new Set(todayHabits.map((h) => h.habitId));
+  const todayDoneCount = todayLogs.filter(
+    (l) => l.status === "done" && todayHabitIds.has(l.habitId)
+  ).reduce((acc, l) => {
+    acc.add(l.habitId);
+    return acc;
+  }, new Set<string>()).size;
   const todayTotal = todayHabits.length;
-  const todayProgress = todayTotal > 0 ? Math.round((todayDoneCount / todayTotal) * 100) : 0;
+  const todayProgress = todayTotal > 0 ? Math.min(100, Math.round((todayDoneCount / todayTotal) * 100)) : 0;
 
 
   return (

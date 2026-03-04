@@ -65,9 +65,16 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
     return log ? log.status : null;
   };
 
-  const todayDoneCount = todayLogs.filter((l) => l.status === "done").length;
+  // Contar apenas logs "done" cujo habitId corresponde a um hábito programado para hoje (evita duplicados/órfãos)
+  const todayHabitIds = new Set(todayHabits.map((h) => h.habitId));
+  const todayDoneCount = todayLogs.filter(
+    (l) => l.status === "done" && todayHabitIds.has(l.habitId)
+  ).reduce((acc, l) => {
+    acc.add(l.habitId);
+    return acc;
+  }, new Set<string>()).size;
   const todayTotal = todayHabits.length;
-  const todayProgress = todayTotal > 0 ? Math.round((todayDoneCount / todayTotal) * 100) : 0;
+  const todayProgress = todayTotal > 0 ? Math.min(100, Math.round((todayDoneCount / todayTotal) * 100)) : 0;
 
   // Recaída hoje?
   const todayRelapse = relapseLogs.find((r) => r.dateKey === today);
@@ -121,11 +128,15 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
       const date = new Date(day + "T12:00:00");
       const dow = date.getDay();
       const dayHabits = season.habits.filter((h) => h.daysOfWeek.includes(dow));
+      const dayHabitIds = new Set(dayHabits.map((h) => h.habitId));
       totalScheduled += dayHabits.length;
-      const dayLogs = logs.filter((l) => l.date.split("T")[0] === day && l.status === "done");
-      totalDone += dayLogs.length;
+      // Deduplicar: contar apenas habitIds únicos com status "done" que estejam programados para esse dia
+      const doneDayIds = new Set(
+        logs.filter((l) => l.date.split("T")[0] === day && l.status === "done" && dayHabitIds.has(l.habitId)).map((l) => l.habitId)
+      );
+      totalDone += Math.min(doneDayIds.size, dayHabits.length);
     }
-    return totalScheduled > 0 ? Math.round((totalDone / totalScheduled) * 100) : 0;
+    return totalScheduled > 0 ? Math.min(100, Math.round((totalDone / totalScheduled) * 100)) : 0;
   }, [seasonDays, season.habits, logs]);
 
   // ── CORRECÇÃO REQ-7: Progresso da semana actual ──
@@ -135,7 +146,6 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
-
     let weekScheduled = 0;
     let weekDone = 0;
     for (let i = 0; i < 7; i++) {
@@ -146,11 +156,15 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
       if (dayStr > today) break;
       const dow = d.getDay();
       const dayHabits = season.habits.filter((h) => h.daysOfWeek.includes(dow));
+      const dayHabitIds = new Set(dayHabits.map((h) => h.habitId));
       weekScheduled += dayHabits.length;
-      const dayLogs = logs.filter((l) => l.date.split("T")[0] === dayStr && l.status === "done");
-      weekDone += dayLogs.length;
+      // Deduplicar: contar apenas habitIds únicos com status "done" que estejam programados para esse dia
+      const doneDayIds = new Set(
+        logs.filter((l) => l.date.split("T")[0] === dayStr && l.status === "done" && dayHabitIds.has(l.habitId)).map((l) => l.habitId)
+      );
+      weekDone += Math.min(doneDayIds.size, dayHabits.length);
     }
-    return { weekScheduled, weekDone, rate: weekScheduled > 0 ? Math.round((weekDone / weekScheduled) * 100) : 0 };
+    return { weekScheduled, weekDone, rate: weekScheduled > 0 ? Math.min(100, Math.round((weekDone / weekScheduled) * 100)) : 0 };;
   }, [season.habits, logs, today]);
 
   // ── Dados para gráfico de dias limpos vs recaídas (período da temporada) ──
@@ -188,10 +202,12 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
       const date = new Date(dateStr + "T12:00:00");
       const dow = date.getDay();
       const dayHabits = season.habits.filter((h) => h.daysOfWeek.includes(dow));
+      const dayHabitIds = new Set(dayHabits.map((h) => h.habitId));
       const dayLogs = logs.filter((l) => l.date.split("T")[0] === dateStr);
-      const done = dayLogs.filter((l) => l.status === "done").length;
+      const doneIds = new Set(dayLogs.filter((l) => l.status === "done" && dayHabitIds.has(l.habitId)).map((l) => l.habitId));
+      const done = Math.min(doneIds.size, dayHabits.length);
       const scheduled = dayHabits.length;
-      const pct = scheduled > 0 ? Math.round((done / scheduled) * 100) : 0;
+      const pct = scheduled > 0 ? Math.min(100, Math.round((done / scheduled) * 100)) : 0;
       const hasRelapse = relapseLogs.some((r) => r.dateKey === dateStr) ? 1 : 0;
       return {
         date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
@@ -211,8 +227,9 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
       const dow = date.getDay();
       const dayHabits = season.habits.filter((h) => h.daysOfWeek.includes(dow));
       totals[dow] += dayHabits.length;
-      const dayLogs = logs.filter((l) => l.date.split("T")[0] === day && l.status === "done");
-      counts[dow] += dayLogs.length;
+      const dayHabitIds = new Set(dayHabits.map((h) => h.habitId));
+      const doneIds = new Set(logs.filter((l) => l.date.split("T")[0] === day && l.status === "done" && dayHabitIds.has(l.habitId)).map((l) => l.habitId));
+      counts[dow] += Math.min(doneIds.size, dayHabits.length);
     }
     return labels.map((label, i) => ({
       label,
@@ -240,8 +257,10 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
       const date = new Date(dateStr + "T12:00:00");
       const dow = date.getDay();
       const dayHabits = season.habits.filter((h) => h.daysOfWeek.includes(dow));
+      const dayHabitIds = new Set(dayHabits.map((h) => h.habitId));
       const dayLogs = logs.filter((l) => l.date.split("T")[0] === dateStr);
-      const doneCount = dayLogs.filter((l) => l.status === "done").length;
+      const doneIds = new Set(dayLogs.filter((l) => l.status === "done" && dayHabitIds.has(l.habitId)).map((l) => l.habitId));
+      const doneCount = Math.min(doneIds.size, dayHabits.length);
       const scheduledCount = dayHabits.length;
       const hasRelapse = relapseLogs.some((r) => r.dateKey === dateStr);
       const isFuture = dateStr > today;
