@@ -710,7 +710,7 @@ export function AvatarEspelho({
                     style={{ backgroundColor: phaseConfig.bgScene }}
                   >
                     {/* Scene particles */}
-                    {phase.aura && (
+                    {phaseConfig.aura && (
                       <div className="absolute inset-0 pointer-events-none">
                         <div className="av-orbit-1 absolute" style={{ top: "50%", left: "50%", width: "4px", height: "4px" }}>
                           <div className="w-1 h-1 rounded-full" style={{ backgroundColor: phaseConfig.particleColor, opacity: 0.5 }} />
