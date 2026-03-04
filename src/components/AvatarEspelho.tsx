@@ -266,7 +266,7 @@ function injectAnimations() {
       43% { transform: scaleY(0.08); }
     }
     .av-blink { animation: av-blink 4.5s ease-in-out infinite; transform-origin: center; }
-    .av-blink-delay { animation: av-blink 4.5s ease-in-out infinite 0.6s; transform-origin: center; }
+    .av-blink-delay { animation: av-blink 4.5s ease-in-out infinite; transform-origin: center; }
 
     @keyframes av-ear-l {
       0%, 85%, 100% { transform: rotate(-12deg); }
