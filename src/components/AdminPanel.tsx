@@ -1116,7 +1116,7 @@ const AdminPanel: React.FC = () => {
                             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">{habit.duration} min</span>
                             {habit.addictionId && (
                               <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-600">
-                                {addictions.find(a => a.id === habit.addictionId)?.label || habit.addictionId}
+                                {addictions.find(a => a.id === habit.addictionId)?.name || addictions.find(a => a.id === habit.addictionId)?.label || habit.addictionId}
                               </span>
                             )}
                           </div>
@@ -1404,7 +1404,7 @@ const AdminPanel: React.FC = () => {
                           <label className="block text-sm font-medium text-zinc-700 mb-1">Vício Relacionado (opcional)</label>
                           <select value={habitForm.addictionId} onChange={e => setHabitForm({...habitForm, addictionId: e.target.value})} className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="">Nenhum (hábito geral)</option>
-                            {addictions.map(a => <option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
+                            {addictions.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name || a.label}</option>)}
                           </select>
                         </div>
                         <div>
