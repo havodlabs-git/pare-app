@@ -4,7 +4,7 @@ import {
   Camera, Phone, Mail, Edit3, Save, Loader2, ChevronRight,
   Palette, Eye, RefreshCw, Info, Bell, Shield, Trash2,
   Check, Star, Lock, CheckCircle2, LogOut, ChevronDown,
-  Heart, Brain, Zap, Target, Flame
+  Heart, Brain, Zap, Target, Flame, Compass, Sparkles, Plus
 } from "lucide-react";
 import type { BehavioralProfile } from "./OnboardingBehavioral";
 import type { Achievement } from "./SeasonDashboard";
@@ -108,6 +108,11 @@ export function UserProfileDrawer({
   const [avatarPreview, setAvatarPreview] = useState(user.avatar || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Visão de Futuro e Interesses (editáveis)
+  const [editFutureVision, setEditFutureVision] = useState(behavioralProfile?.futureVision || "");
+  const [editInterests, setEditInterests] = useState<string[]>(behavioralProfile?.interests || []);
+  const [newInterest, setNewInterest] = useState("");
+
   // Configurações locais
   const [localSettings, setLocalSettings] = useState<UserSettings>(settings);
 
@@ -144,8 +149,17 @@ export function UserProfileDrawer({
     }
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     onSaveSettings(localSettings);
+    // Salvar Visão de Futuro e Interesses no perfil comportamental
+    if (behavioralProfile) {
+      const updatedBehavioral = {
+        ...behavioralProfile,
+        futureVision: editFutureVision,
+        interests: editInterests,
+      };
+      await onSaveProfile({ behavioralProfile: updatedBehavioral } as any);
+    }
   };
 
   if (!isOpen) return null;
@@ -640,6 +654,96 @@ export function UserProfileDrawer({
                   <RefreshCw className="w-4 h-4" />
                   Refazer Onboarding
                 </button>
+              </div>
+
+              {/* Visão de Futuro */}
+              <div className="rounded-2xl border border-gray-100 p-4 bg-gray-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Compass className="w-4 h-4 text-amber-500" />
+                  <p className="text-sm font-semibold text-gray-700">Visão de Futuro</p>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">Como você se imagina daqui a 6 meses? Essa visão te guia na jornada.</p>
+                <textarea
+                  value={editFutureVision}
+                  onChange={(e) => setEditFutureVision(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
+                  placeholder="Ex: Quero estar livre, com mais energia, focado nos meus projetos e vivendo com propósito..."
+                />
+              </div>
+
+              {/* Interesses */}
+              <div className="rounded-2xl border border-gray-100 p-4 bg-gray-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-violet-500" />
+                  <p className="text-sm font-semibold text-gray-700">Meus Interesses</p>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">Atividades que te motivam e ajudam na recuperação.</p>
+
+                {/* Tags actuais */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {editInterests.map((interest) => (
+                    <span
+                      key={interest}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-violet-100 text-violet-700 text-xs font-medium group"
+                    >
+                      {interest}
+                      <button
+                        onClick={() => setEditInterests((prev) => prev.filter((i) => i !== interest))}
+                        className="ml-0.5 hover:text-red-500 transition-colors"
+                        aria-label={`Remover ${interest}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {editInterests.length === 0 && (
+                    <span className="text-xs text-gray-400 italic">Nenhum interesse adicionado</span>
+                  )}
+                </div>
+
+                {/* Sugestões rápidas */}
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {["Academia", "Leitura", "Música", "Meditação", "Artes", "Esportes", "Culinária", "Natureza", "Voluntariado", "Tecnologia", "Yoga", "Viagens"].filter((s) => !editInterests.includes(s)).map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => setEditInterests((prev) => [...prev, suggestion])}
+                      className="px-2.5 py-1 rounded-full border border-dashed border-gray-300 text-gray-500 text-xs hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                    >
+                      + {suggestion}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Adicionar interesse personalizado */}
+                <div className="flex gap-2">
+                  <input
+                    value={newInterest}
+                    onChange={(e) => setNewInterest(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newInterest.trim()) {
+                        e.preventDefault();
+                        if (!editInterests.includes(newInterest.trim())) {
+                          setEditInterests((prev) => [...prev, newInterest.trim()]);
+                        }
+                        setNewInterest("");
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                    placeholder="Adicionar outro interesse..."
+                  />
+                  <button
+                    onClick={() => {
+                      if (newInterest.trim() && !editInterests.includes(newInterest.trim())) {
+                        setEditInterests((prev) => [...prev, newInterest.trim()]);
+                        setNewInterest("");
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl bg-violet-100 text-violet-600 hover:bg-violet-200 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Notificações */}
