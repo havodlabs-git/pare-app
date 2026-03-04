@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
   CHANGE_PASSWORD: '/api/users/password',
   DELETE_ACCOUNT: '/api/users/account',
   GET_DASHBOARD: '/api/users/dashboard',
+  GET_APP_DATA: '/api/users/app-data',
+  SAVE_APP_DATA: '/api/users/app-data',
   
   // Modules
   GET_MODULES_CATALOG: '/api/modules/catalog',

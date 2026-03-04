@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "./context/AuthContext";
 import { AuthScreen } from "./components/AuthScreen";
 import { ModernDashboard } from "./components/ModernDashboard";
@@ -38,6 +38,7 @@ import {
 } from "./components/SeasonDashboard";
 import { ProgressTab } from "./components/ProgressTab";
 import { AvatarEspelho } from "./components/AvatarEspelho";
+import { api } from "./services/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -163,7 +164,7 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
-  // Carregar perfil quando o utilizador muda e sincronizar plano com backend
+  // Carregar perfil quando o utilizador muda — tenta localStorage primeiro, depois backend
   useEffect(() => {
     if (currentUser) {
       const saved = localStorage.getItem(`${USER_PROFILE_PREFIX}${currentUser.email}`);
@@ -173,7 +174,26 @@ export default function App() {
         profile = { ...profile, plan: currentUser.plan, planExpiresAt: currentUser.planExpiresAt || undefined };
         localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(profile));
       }
-      setUserProfile(profile);
+      if (profile) {
+        setUserProfile(profile);
+      } else {
+        // Sem dados locais — buscar do backend (outro navegador)
+        api.getAppData().then((res: any) => {
+          if (res?.data) {
+            const remoteProfile = res.data;
+            // Sincronizar plano
+            if (currentUser.plan && remoteProfile.plan !== currentUser.plan) {
+              remoteProfile.plan = currentUser.plan;
+              remoteProfile.planExpiresAt = currentUser.planExpiresAt || undefined;
+            }
+            localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(remoteProfile));
+            setUserProfile(remoteProfile);
+          }
+        }).catch(() => {
+          // Sem dados no backend — é um utilizador novo, vai para onboarding
+          setUserProfile(null);
+        });
+      }
       const savedSettings = localStorage.getItem(`pare_settings_${currentUser.email}`);
       if (savedSettings) {
         setUserSettings((prev: any) => ({ ...prev, ...JSON.parse(savedSettings) }));
@@ -221,10 +241,18 @@ export default function App() {
     return () => clearInterval(interval);
   }, [userProfile?.currentModuleId, currentUser]);
 
-  // Persistir perfil
+  // Persistir perfil — localStorage + backend
+  const syncTimeoutRef = useRef<any>(null);
   useEffect(() => {
     if (userProfile && currentUser) {
       localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(userProfile));
+      // Debounce sync com backend (2s) para não sobrecarregar
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        api.saveAppData(userProfile).catch(() => {
+          // Silencioso — dados ficam no localStorage como fallback
+        });
+      }, 2000);
     }
   }, [userProfile, currentUser]);
 

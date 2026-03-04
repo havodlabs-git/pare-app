@@ -178,6 +178,17 @@ class ApiService {
     return await this.request(API_ENDPOINTS.GET_DASHBOARD);
   }
 
+  async getAppData() {
+    return await this.request(API_ENDPOINTS.GET_APP_DATA);
+  }
+
+  async saveAppData(appData) {
+    return await this.request(API_ENDPOINTS.SAVE_APP_DATA, {
+      method: 'PUT',
+      body: JSON.stringify({ appData }),
+    });
+  }
+
   // Module endpoints
   async getModules() {
     return await this.request(API_ENDPOINTS.GET_MODULES);
