@@ -133,6 +133,7 @@ export default function App() {
     ? userProfile.achievements
     : ALL_ACHIEVEMENTS.map((a) => ({ ...a, unlocked: false }));
 
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showRelapseDialog, setShowRelapseDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -176,8 +177,10 @@ export default function App() {
       }
       if (profile) {
         setUserProfile(profile);
+        setLoadingProfile(false);
       } else {
         // Sem dados locais — buscar do backend (outro navegador)
+        setLoadingProfile(true);
         api.getAppData().then((res: any) => {
           if (res?.data) {
             const remoteProfile = res.data;
@@ -192,6 +195,8 @@ export default function App() {
         }).catch(() => {
           // Sem dados no backend — é um utilizador novo, vai para onboarding
           setUserProfile(null);
+        }).finally(() => {
+          setLoadingProfile(false);
         });
       }
       const savedSettings = localStorage.getItem(`pare_settings_${currentUser.email}`);
@@ -200,6 +205,7 @@ export default function App() {
       }
     } else {
       setUserProfile(null);
+      setLoadingProfile(false);
     }
   }, [currentUser]);
 
@@ -520,6 +526,23 @@ export default function App() {
 
   if (!isAuthenticated) {
     return <AuthScreen />;
+  }
+
+  // ── Loading enquanto busca dados do backend ──────────────────────────────
+  if (loadingProfile || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950">
+        <div className="text-center">
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-violet-300/20"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-violet-400 animate-spin"></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-pink-400 animate-spin" style={{animationDirection: 'reverse', animationDuration: '1.5s'}}></div>
+          </div>
+          <p className="text-white/80 text-lg font-medium">Carregando seus dados...</p>
+          <p className="text-white/40 text-sm mt-1">Sincronizando com o servidor</p>
+        </div>
+      </div>
+    );
   }
 
   // ── Fluxo de Onboarding Comportamental ────────────────────────────────────
