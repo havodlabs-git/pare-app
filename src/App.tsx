@@ -96,19 +96,58 @@ const moduleConfig = {
 
 // ─── Helpers de Conquistas ────────────────────────────────────────────────────
 
-function checkAchievements(logs: HabitLog[], prevAchievements: Achievement[]): Achievement[] {
-  const cleanStreak = getMaxCleanStreak(logs);
+function checkAchievements(
+  logs: HabitLog[],
+  prevAchievements: Achievement[],
+  relapseLogs: RelapseLog[] = [],
+  completedSeasons: number = 0
+): Achievement[] {
   const totalDone = logs.filter((l) => l.status === "done").length;
+
+  // Calcular dias limpos consecutivos (sem recaída)
+  const relapseDateSet = new Set(relapseLogs.map((r) => r.dateKey));
+  const doneDates = [...new Set(logs.filter((l) => l.status === "done").map((l) => l.date.split("T")[0]))].sort();
+
+  // Current clean streak: contar para trás a partir de hoje
+  let currentCleanStreak = 0;
+  const today = new Date();
+  for (let d = new Date(today); ; d.setDate(d.getDate() - 1)) {
+    const key = d.toISOString().split("T")[0];
+    if (relapseDateSet.has(key)) break;
+    // Só contar dias que já passaram ou hoje
+    if (d <= today) currentCleanStreak++;
+    // Não contar mais que 400 dias para trás
+    if (currentCleanStreak > 400) break;
+    // Se chegámos antes do primeiro log, parar
+    if (doneDates.length > 0 && key < doneDates[0]) break;
+    if (doneDates.length === 0 && currentCleanStreak >= 1) break;
+  }
+
+  // Verificar semana perfeita (>=7 hábitos feitos numa semana)
+  const weekMap = new Map<string, number>();
+  logs.filter((l) => l.status === "done").forEach((l) => {
+    const d = new Date(l.date);
+    const weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - d.getDay());
+    const weekKey = weekStart.toISOString().split("T")[0];
+    weekMap.set(weekKey, (weekMap.get(weekKey) || 0) + 1);
+  });
+  const hasPerfectWeek = Array.from(weekMap.values()).some((count) => count >= 7);
 
   return prevAchievements.map((a) => {
     if (a.unlocked) return a;
-
     let unlocked = false;
-    if (a.id === "seven_days" && cleanStreak >= 7) unlocked = true;
-    if (a.id === "first_week" && cleanStreak >= 7) unlocked = true;
-    if (a.id === "thirty_days" && cleanStreak >= 30) unlocked = true;
-    if (a.id === "perfect_week" && totalDone >= 7) unlocked = true;
-
+    if (a.id === "first_day" && totalDone >= 1) unlocked = true;
+    if (a.id === "three_days" && currentCleanStreak >= 3) unlocked = true;
+    if (a.id === "first_week" && currentCleanStreak >= 7) unlocked = true;
+    if (a.id === "perfect_week" && hasPerfectWeek) unlocked = true;
+    if (a.id === "two_weeks" && currentCleanStreak >= 14) unlocked = true;
+    if (a.id === "thirty_days" && currentCleanStreak >= 30) unlocked = true;
+    if (a.id === "first_season" && completedSeasons >= 1) unlocked = true;
+    if (a.id === "ninety_days" && currentCleanStreak >= 90) unlocked = true;
+    if (a.id === "three_seasons" && completedSeasons >= 3) unlocked = true;
+    if (a.id === "half_year" && currentCleanStreak >= 180) unlocked = true;
+    if (a.id === "year_legend" && currentCleanStreak >= 365) unlocked = true;
     return unlocked ? { ...a, unlocked: true, unlockedAt: new Date().toISOString() } : a;
   });
 }
@@ -347,7 +386,7 @@ export default function App() {
     };
 
     const newLogs = [...(userProfile.habitLogs || []), newLog];
-    const newAchievements = checkAchievements(newLogs, userProfile.achievements || ACHIEVEMENTS_DEFINITIONS);
+    const newAchievements = checkAchievements(newLogs, userProfile.achievements || ACHIEVEMENTS_DEFINITIONS, userProfile.relapseLogs || []);
 
     // Verificar conquistas novas
     const newlyUnlocked = newAchievements.filter(
@@ -719,7 +758,9 @@ export default function App() {
                   seasonDurationDays={userProfile.currentSeason!.durationDays}
                   userAvatar={userProfile.behavioralProfile?.avatar || (currentUser as any)?.avatar}
                   userName={(currentUser as any)?.name || "Usuário"}
+                  achievements={resolvedAchievements}
                   onOpenForum={() => setActiveTab("forum")}
+                  onOpenAchievements={() => setActiveTab("achievements")}
                 />
                 <SeasonDashboard
                   season={userProfile.currentSeason!}

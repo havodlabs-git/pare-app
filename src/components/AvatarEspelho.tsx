@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Heart, Zap, Lock, Unlock,
   ChevronRight, Flame, Eye, Info,
-  Shield, TrendingUp, Sparkles, Star
+  Shield, TrendingUp, Sparkles, Star,
+  Award, Trophy, Target, Diamond, Rocket, Crown
 } from "lucide-react";
 import type { HabitLog } from "./SeasonDashboard";
 import type { RelapseLog } from "../App";
@@ -16,7 +17,19 @@ interface AvatarEspelhoProps {
   seasonDurationDays: number;
   userAvatar?: string;
   userName: string;
+  achievements?: Achievement[];
   onOpenForum?: () => void;
+  onOpenAchievements?: () => void;
+}
+
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+  requiredDays?: number;
 }
 
 interface AvatarState {
@@ -594,7 +607,9 @@ export function AvatarEspelho({
   relapseLogs,
   seasonStartDate,
   seasonDurationDays,
+  achievements = [],
   onOpenForum,
+  onOpenAchievements,
 }: AvatarEspelhoProps) {
   const [showInfo, setShowInfo] = useState(false);
   const [animateLevel, setAnimateLevel] = useState(false);
@@ -891,6 +906,82 @@ export function AvatarEspelho({
               background: `linear-gradient(90deg, transparent, ${phaseConfig.particleColor}25, transparent)`
             }} />
           </div>
+
+          {/* ── Achievements Showcase ──────────────────────────────────────── */}
+          {achievements.length > 0 && (
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Trophy className={`w-3.5 h-3.5 ${phaseConfig.labelColor}`} />
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Conquistas</span>
+                </div>
+                <button
+                  onClick={onOpenAchievements}
+                  className="text-[10px] font-semibold text-gray-500 hover:text-white transition-colors flex items-center gap-1"
+                >
+                  Ver todas <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Achievement stats */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex-1 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${achievements.length > 0 ? (achievements.filter((a) => a.unlocked).length / achievements.length) * 100 : 0}%`,
+                      background: `linear-gradient(90deg, ${phaseConfig.bodyDark}, ${phaseConfig.bodyMain})`,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 flex-shrink-0">
+                  {achievements.filter((a) => a.unlocked).length}/{achievements.length}
+                </span>
+              </div>
+
+              {/* Achievement badges - show unlocked ones */}
+              <div className="flex flex-wrap gap-2">
+                {achievements.filter((a) => a.unlocked).length === 0 ? (
+                  <p className="text-[10px] text-gray-600 italic">Nenhuma conquista desbloqueada ainda. Continue a sua jornada!</p>
+                ) : (
+                  achievements.filter((a) => a.unlocked).map((a) => (
+                    <div
+                      key={a.id}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all"
+                      style={{
+                        background: `linear-gradient(135deg, ${phaseConfig.particleColor}12, ${phaseConfig.particleColor}06)`,
+                        borderColor: `${phaseConfig.particleColor}25`,
+                      }}
+                      title={a.description}
+                    >
+                      <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: `${phaseConfig.particleColor}20` }}>
+                        {a.icon === "star" && <Star className="w-3 h-3 text-amber-400" />}
+                        {a.icon === "sprout" && <Flame className="w-3 h-3 text-emerald-400" />}
+                        {a.icon === "flame" && <Shield className="w-3 h-3 text-orange-400" />}
+                        {a.icon === "zap" && <Zap className="w-3 h-3 text-yellow-400" />}
+                        {a.icon === "target" && <Target className="w-3 h-3 text-blue-400" />}
+                        {a.icon === "diamond" && <Diamond className="w-3 h-3 text-violet-400" />}
+                        {a.icon === "award" && <Award className="w-3 h-3 text-pink-400" />}
+                        {a.icon === "rocket" && <Rocket className="w-3 h-3 text-red-400" />}
+                        {a.icon === "crown" && <Crown className="w-3 h-3 text-amber-400" />}
+                        {a.icon === "trophy" && <Trophy className="w-3 h-3 text-amber-400" />}
+                      </div>
+                      <span className="text-[10px] font-semibold text-gray-300">{a.name}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Divider ────────────────────────────────────────────────────── */}
+          {achievements.length > 0 && (
+            <div className="mx-5">
+              <div className="h-px w-full" style={{
+                background: `linear-gradient(90deg, transparent, ${phaseConfig.particleColor}25, transparent)`
+              }} />
+            </div>
+          )}
 
           {/* ── Community Gate ──────────────────────────────────────────────── */}
           <div className="px-5 py-4">

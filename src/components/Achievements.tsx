@@ -82,7 +82,7 @@ export const ALL_ACHIEVEMENTS: Omit<Achievement, "unlocked" | "unlockedAt">[] = 
 ];
 
 // Mapa de ícones Lucide por id (para renderização visual)
-const ACHIEVEMENT_ICONS: Record<string, React.ReactNode> = {
+export const ACHIEVEMENT_ICONS: Record<string, React.ReactNode> = {
   first_day:      <Star className="w-6 h-6" />,
   three_days:     <Flame className="w-6 h-6" />,
   first_week:     <Shield className="w-6 h-6" />,
@@ -97,7 +97,7 @@ const ACHIEVEMENT_ICONS: Record<string, React.ReactNode> = {
 };
 
 // Pontos por conquista
-const ACHIEVEMENT_POINTS: Record<string, number> = {
+export const ACHIEVEMENT_POINTS: Record<string, number> = {
   first_day:      10,
   three_days:     25,
   first_week:     50,

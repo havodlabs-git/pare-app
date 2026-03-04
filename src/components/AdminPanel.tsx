@@ -3,7 +3,8 @@ import {
   Users, MessageSquare, UserCheck, Calendar, Settings, 
   BarChart3, Search, MoreVertical, Ban, CheckCircle, 
   Trash2, Edit, Plus, Video, X, Eye, ChevronLeft, ChevronRight,
-  TrendingUp, DollarSign, Clock, Shield, LogIn, LogOut, Upload, Image
+  TrendingUp, DollarSign, Clock, Shield, LogIn, LogOut, Upload, Image,
+  Award, Trophy, Star, Flame, Zap, Target, Diamond, Rocket, Crown, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -52,7 +53,7 @@ interface Professional {
   isActive: boolean;
 }
 
-type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas' | 'content';
+type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas' | 'content' | 'achievements';
 
 const AdminPanel: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -103,6 +104,14 @@ const AdminPanel: React.FC = () => {
   const [editingHabit, setEditingHabit] = useState<any | null>(null);
   const [addictionForm, setAddictionForm] = useState({ name: '', label: '', icon: '', color: '#ef4444', description: '', category: 'geral', moduleId: '', imageUrl: '' });
   const [habitForm, setHabitForm] = useState({ name: '', description: '', category: 'geral', icon: '', color: '#8b5cf6', frequency: 3, duration: 30, period: 'morning', addictionId: '', tags: '' });
+
+  // Achievements
+  const [achievementsList, setAchievementsList] = useState<any[]>([]);
+  const [showAchievementModal, setShowAchievementModal] = useState(false);
+  const [editingAchievement, setEditingAchievement] = useState<any | null>(null);
+  const [achievementForm, setAchievementForm] = useState({
+    name: '', description: '', icon: 'star', requiredDays: 0, points: 0, isActive: true, order: 0
+  });
 
   // Check if already logged in
   useEffect(() => {
@@ -180,6 +189,27 @@ const AdminPanel: React.FC = () => {
           setHabits(habitsRes.data.data.habits || []);
           const modulesRes = await api.get('/admin/modules');
           setModules(modulesRes.data.data.modules || []);
+          break;
+        case 'achievements':
+          try {
+            const achRes = await api.get('/admin/achievements');
+            setAchievementsList(achRes.data.data.achievements || []);
+          } catch {
+            // Se o endpoint não existir, usar lista local padrão
+            setAchievementsList([
+              { id: 'first_day', name: 'Primeiro Passo', description: 'Complete o seu primeiro hábito', icon: 'star', requiredDays: 1, points: 10, isActive: true, order: 1 },
+              { id: 'three_days', name: '3 Dias Limpo', description: '3 dias consecutivos sem recaída', icon: 'flame', requiredDays: 3, points: 25, isActive: true, order: 2 },
+              { id: 'first_week', name: 'Primeira Semana', description: '7 dias consecutivos sem recaída', icon: 'shield', requiredDays: 7, points: 50, isActive: true, order: 3 },
+              { id: 'perfect_week', name: 'Semana Perfeita', description: 'Complete todos os hábitos de uma semana', icon: 'zap', requiredDays: 7, points: 75, isActive: true, order: 4 },
+              { id: 'two_weeks', name: '2 Semanas', description: '14 dias consecutivos sem recaída', icon: 'target', requiredDays: 14, points: 100, isActive: true, order: 5 },
+              { id: 'thirty_days', name: '30 Dias', description: '30 dias consecutivos sem recaída', icon: 'diamond', requiredDays: 30, points: 200, isActive: true, order: 6 },
+              { id: 'first_season', name: 'Primeira Temporada', description: 'Complete a primeira temporada', icon: 'award', requiredDays: 0, points: 150, isActive: true, order: 7 },
+              { id: 'ninety_days', name: '90 Dias', description: '90 dias consecutivos sem recaída', icon: 'rocket', requiredDays: 90, points: 500, isActive: true, order: 8 },
+              { id: 'three_seasons', name: '3 Temporadas', description: 'Complete 3 temporadas', icon: 'crown', requiredDays: 0, points: 400, isActive: true, order: 9 },
+              { id: 'half_year', name: 'Meio Ano', description: '180 dias consecutivos sem recaída', icon: 'trophy', requiredDays: 180, points: 1000, isActive: true, order: 10 },
+              { id: 'year_legend', name: 'Lenda de 1 Ano', description: '365 dias consecutivos sem recaída', icon: 'trophy', requiredDays: 365, points: 2000, isActive: true, order: 11 },
+            ]);
+          }
           break;
       }
     } catch (err: any) {
@@ -486,6 +516,7 @@ const AdminPanel: React.FC = () => {
     { id: 'posts', label: 'Posts', icon: MessageSquare },
     { id: 'professionals', label: 'Psicólogos', icon: UserCheck },
     { id: 'content', label: 'Vícios & Hábitos', icon: Settings },
+    { id: 'achievements', label: 'Conquistas', icon: Trophy },
     { id: 'videochamadas', label: 'Videochamadas', icon: Video },
   ];
 
@@ -1426,6 +1457,178 @@ const AdminPanel: React.FC = () => {
               </div>
             )}
 
+            {/* Achievements Management */}
+            {activeTab === 'achievements' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
+                    <Trophy className="w-6 h-6 text-amber-500" />
+                    Conquistas
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setEditingAchievement(null);
+                      setAchievementForm({ name: '', description: '', icon: 'star', requiredDays: 0, points: 0, isActive: true, order: achievementsList.length + 1 });
+                      setShowAchievementModal(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Nova Conquista
+                  </button>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-white rounded-xl border border-zinc-200 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Trophy className="w-4 h-4 text-amber-500" />
+                      <span className="text-sm text-zinc-500">Total</span>
+                    </div>
+                    <p className="text-2xl font-bold text-zinc-900">{achievementsList.length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-zinc-200 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span className="text-sm text-zinc-500">Ativas</span>
+                    </div>
+                    <p className="text-2xl font-bold text-zinc-900">{achievementsList.filter(a => a.isActive).length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-zinc-200 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Star className="w-4 h-4 text-violet-500" />
+                      <span className="text-sm text-zinc-500">Total Pontos</span>
+                    </div>
+                    <p className="text-2xl font-bold text-zinc-900">{achievementsList.reduce((sum: number, a: any) => sum + (a.points || 0), 0)}</p>
+                  </div>
+                </div>
+
+                {/* Achievements Table */}
+                <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-zinc-200 bg-zinc-50">
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">#</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Ícone</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Nome</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Descrição</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Dias Req.</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Pontos</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Estado</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {achievementsList.sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((achievement: any, index: number) => {
+                        const iconMap: Record<string, React.ReactNode> = {
+                          star: <Star className="w-5 h-5 text-amber-500" />,
+                          flame: <Flame className="w-5 h-5 text-orange-500" />,
+                          shield: <Shield className="w-5 h-5 text-blue-500" />,
+                          zap: <Zap className="w-5 h-5 text-yellow-500" />,
+                          target: <Target className="w-5 h-5 text-cyan-500" />,
+                          diamond: <Diamond className="w-5 h-5 text-violet-500" />,
+                          award: <Award className="w-5 h-5 text-pink-500" />,
+                          rocket: <Rocket className="w-5 h-5 text-red-500" />,
+                          crown: <Crown className="w-5 h-5 text-amber-600" />,
+                          trophy: <Trophy className="w-5 h-5 text-amber-500" />,
+                        };
+                        return (
+                          <tr key={achievement.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                            <td className="p-4 text-sm text-zinc-500">{achievement.order || index + 1}</td>
+                            <td className="p-4">
+                              <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center">
+                                {iconMap[achievement.icon] || <Star className="w-5 h-5 text-zinc-400" />}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <p className="font-semibold text-zinc-900">{achievement.name}</p>
+                              <p className="text-xs text-zinc-400">ID: {achievement.id}</p>
+                            </td>
+                            <td className="p-4 text-sm text-zinc-600 max-w-xs truncate">{achievement.description}</td>
+                            <td className="p-4 text-sm text-zinc-600">
+                              {achievement.requiredDays > 0 ? `${achievement.requiredDays} dias` : '—'}
+                            </td>
+                            <td className="p-4">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">
+                                <Star className="w-3 h-3" />
+                                {achievement.points} pts
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <button
+                                onClick={async () => {
+                                  const updated = { ...achievement, isActive: !achievement.isActive };
+                                  try {
+                                    await api.put(`/admin/achievements/${achievement.id}`, updated);
+                                    setAchievementsList(prev => prev.map(a => a.id === achievement.id ? updated : a));
+                                  } catch {
+                                    setAchievementsList(prev => prev.map(a => a.id === achievement.id ? updated : a));
+                                  }
+                                }}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                                  achievement.isActive
+                                    ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                                    : 'bg-red-50 text-red-700 hover:bg-red-100'
+                                }`}
+                              >
+                                {achievement.isActive ? (
+                                  <><CheckCircle className="w-3.5 h-3.5" /> Ativa</>
+                                ) : (
+                                  <><Ban className="w-3.5 h-3.5" /> Inativa</>
+                                )}
+                              </button>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingAchievement(achievement);
+                                    setAchievementForm({
+                                      name: achievement.name,
+                                      description: achievement.description,
+                                      icon: achievement.icon,
+                                      requiredDays: achievement.requiredDays || 0,
+                                      points: achievement.points || 0,
+                                      isActive: achievement.isActive !== false,
+                                      order: achievement.order || index + 1,
+                                    });
+                                    setShowAchievementModal(true);
+                                  }}
+                                  className="p-2 hover:bg-zinc-100 rounded-lg transition-colors"
+                                  title="Editar"
+                                >
+                                  <Edit className="w-4 h-4 text-zinc-500" />
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm(`Tem certeza que deseja excluir a conquista "${achievement.name}"?`)) return;
+                                    try {
+                                      await api.delete(`/admin/achievements/${achievement.id}`);
+                                    } catch { /* endpoint pode não existir */ }
+                                    setAchievementsList(prev => prev.filter(a => a.id !== achievement.id));
+                                  }}
+                                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {achievementsList.length === 0 && (
+                    <div className="p-12 text-center">
+                      <Trophy className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
+                      <p className="text-zinc-500">Nenhuma conquista cadastrada</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Videochamadas - Jitsi Meet */}
             {activeTab === 'videochamadas' && (
               <div>
@@ -1485,6 +1688,160 @@ const AdminPanel: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Modal de Criação/Edição de Achievement */}
+      {showAchievementModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-zinc-900">
+                {editingAchievement ? 'Editar Conquista' : 'Nova Conquista'}
+              </h3>
+              <button onClick={() => setShowAchievementModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Nome</label>
+                <input
+                  type="text"
+                  value={achievementForm.name}
+                  onChange={(e) => setAchievementForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Ex: Primeira Semana"
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Descrição</label>
+                <textarea
+                  value={achievementForm.description}
+                  onChange={(e) => setAchievementForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Ex: 7 dias consecutivos sem recaída"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Ícone</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'star', icon: <Star className="w-5 h-5" />, label: 'Estrela' },
+                    { id: 'flame', icon: <Flame className="w-5 h-5" />, label: 'Chama' },
+                    { id: 'shield', icon: <Shield className="w-5 h-5" />, label: 'Escudo' },
+                    { id: 'zap', icon: <Zap className="w-5 h-5" />, label: 'Raio' },
+                    { id: 'target', icon: <Target className="w-5 h-5" />, label: 'Alvo' },
+                    { id: 'diamond', icon: <Diamond className="w-5 h-5" />, label: 'Diamante' },
+                    { id: 'award', icon: <Award className="w-5 h-5" />, label: 'Medalha' },
+                    { id: 'rocket', icon: <Rocket className="w-5 h-5" />, label: 'Foguete' },
+                    { id: 'crown', icon: <Crown className="w-5 h-5" />, label: 'Coroa' },
+                    { id: 'trophy', icon: <Trophy className="w-5 h-5" />, label: 'Troféu' },
+                  ].map(({ id, icon, label }) => (
+                    <button
+                      key={id}
+                      onClick={() => setAchievementForm(prev => ({ ...prev, icon: id }))}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                        achievementForm.icon === id
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-zinc-200 hover:bg-zinc-50 text-zinc-600'
+                      }`}
+                      title={label}
+                    >
+                      {icon}
+                      <span className="text-xs">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Dias Requeridos</label>
+                  <input
+                    type="number"
+                    value={achievementForm.requiredDays}
+                    onChange={(e) => setAchievementForm(prev => ({ ...prev, requiredDays: parseInt(e.target.value) || 0 }))}
+                    min={0}
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Pontos</label>
+                  <input
+                    type="number"
+                    value={achievementForm.points}
+                    onChange={(e) => setAchievementForm(prev => ({ ...prev, points: parseInt(e.target.value) || 0 }))}
+                    min={0}
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Ordem</label>
+                  <input
+                    type="number"
+                    value={achievementForm.order}
+                    onChange={(e) => setAchievementForm(prev => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
+                    min={1}
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={achievementForm.isActive}
+                    onChange={(e) => setAchievementForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                    className="w-4 h-4 accent-indigo-600"
+                  />
+                  <span className="text-sm text-zinc-700">Conquista ativa</span>
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowAchievementModal(false)}
+                  className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!achievementForm.name.trim()) { alert('Nome é obrigatório'); return; }
+                    const achievementData = {
+                      ...achievementForm,
+                      id: editingAchievement?.id || achievementForm.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+                    };
+                    try {
+                      if (editingAchievement) {
+                        await api.put(`/admin/achievements/${editingAchievement.id}`, achievementData);
+                      } else {
+                        await api.post('/admin/achievements', achievementData);
+                      }
+                    } catch {
+                      // Se o endpoint não existir, atualizar localmente
+                    }
+                    if (editingAchievement) {
+                      setAchievementsList(prev => prev.map(a => a.id === editingAchievement.id ? { ...a, ...achievementData } : a));
+                    } else {
+                      setAchievementsList(prev => [...prev, achievementData]);
+                    }
+                    setShowAchievementModal(false);
+                    setEditingAchievement(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  {editingAchievement ? 'Salvar Alterações' : 'Criar Conquista'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Alteração de Plano / Role */}
       {showPlanModal && selectedUser && (
