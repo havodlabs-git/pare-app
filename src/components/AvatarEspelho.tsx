@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Heart, Shield, Zap, Star, Lock, Unlock, TrendingUp,
-  ChevronRight, Sparkles, Flame, Crown, Eye, Moon,
-  Sun, CloudRain, Wind, Snowflake, ArrowUp, Info
+  Heart, Zap, Lock, Unlock,
+  ChevronRight, Flame, Eye, Info
 } from "lucide-react";
 import type { HabitLog } from "./SeasonDashboard";
 import type { RelapseLog } from "../App";
@@ -24,31 +23,40 @@ interface AvatarState {
   totalPoints: number;
   phase: "fragilizado" | "estavel" | "evoluindo" | "forte";
   mood: "triste" | "neutro" | "feliz" | "radiante";
-  energy: number; // 0-100
+  energy: number;
   streak: number;
-  weeklyScore: number; // 0-100
+  weeklyScore: number;
   communityUnlocked: boolean;
 }
 
 // ─── Constantes de Níveis do Avatar ──────────────────────────────────────────
 
 const AVATAR_LEVELS = [
-  { level: 1,  name: "Semente",       minPts: 0,    phase: "fragilizado" as const },
-  { level: 2,  name: "Broto",         minPts: 50,   phase: "fragilizado" as const },
-  { level: 3,  name: "Raiz",          minPts: 120,  phase: "fragilizado" as const },
-  { level: 4,  name: "Caule",         minPts: 200,  phase: "estavel" as const },
-  { level: 5,  name: "Folha",         minPts: 300,  phase: "estavel" as const },
-  { level: 6,  name: "Flor",          minPts: 420,  phase: "estavel" as const },
-  { level: 7,  name: "Fruto",         minPts: 560,  phase: "evoluindo" as const },
-  { level: 8,  name: "Árvore",        minPts: 720,  phase: "evoluindo" as const },
-  { level: 9,  name: "Floresta",      minPts: 900,  phase: "evoluindo" as const },
-  { level: 10, name: "Montanha",      minPts: 1100, phase: "forte" as const },
-  { level: 11, name: "Estrela",       minPts: 1350, phase: "forte" as const },
-  { level: 12, name: "Sol",           minPts: 1650, phase: "forte" as const },
-  { level: 13, name: "Universo",      minPts: 2000, phase: "forte" as const },
+  { level: 1,  name: "Semente",   minPts: 0,    phase: "fragilizado" as const },
+  { level: 2,  name: "Broto",     minPts: 50,   phase: "fragilizado" as const },
+  { level: 3,  name: "Raiz",      minPts: 120,  phase: "fragilizado" as const },
+  { level: 4,  name: "Caule",     minPts: 200,  phase: "estavel" as const },
+  { level: 5,  name: "Folha",     minPts: 300,  phase: "estavel" as const },
+  { level: 6,  name: "Flor",      minPts: 420,  phase: "estavel" as const },
+  { level: 7,  name: "Fruto",     minPts: 560,  phase: "evoluindo" as const },
+  { level: 8,  name: "Árvore",    minPts: 720,  phase: "evoluindo" as const },
+  { level: 9,  name: "Floresta",  minPts: 900,  phase: "evoluindo" as const },
+  { level: 10, name: "Montanha",  minPts: 1100, phase: "forte" as const },
+  { level: 11, name: "Estrela",   minPts: 1350, phase: "forte" as const },
+  { level: 12, name: "Sol",       minPts: 1650, phase: "forte" as const },
+  { level: 13, name: "Universo",  minPts: 2000, phase: "forte" as const },
 ];
 
 const COMMUNITY_UNLOCK_LEVEL = 12;
+
+// ─── Mood labels ─────────────────────────────────────────────────────────────
+
+const MOOD_LABELS: Record<AvatarState["mood"], string> = {
+  triste: "Abatido",
+  neutro: "Neutro",
+  feliz: "Bem",
+  radiante: "Radiante",
+};
 
 // ─── Fases visuais ───────────────────────────────────────────────────────────
 
@@ -60,10 +68,15 @@ const PHASE_CONFIG = {
     particleColor: "#94a3b8",
     label: "Fragilizado",
     labelColor: "text-slate-400",
-    bodyColor: "#64748b",
-    eyeColor: "#94a3b8",
+    bodyMain: "#7c8da4",
+    bodyLight: "#a0b1c5",
+    bodyDark: "#4a5568",
+    eyeColor: "#2d3748",
+    pupilColor: "#1a202c",
     cheekColor: "transparent",
+    mouthColor: "#4a5568",
     aura: false,
+    bgScene: "#1a1e2e",
   },
   estavel: {
     gradient: "from-emerald-600 via-teal-600 to-cyan-700",
@@ -72,10 +85,15 @@ const PHASE_CONFIG = {
     particleColor: "#34d399",
     label: "Estável",
     labelColor: "text-emerald-400",
-    bodyColor: "#10b981",
+    bodyMain: "#34d399",
+    bodyLight: "#6ee7b7",
+    bodyDark: "#059669",
     eyeColor: "#065f46",
-    cheekColor: "rgba(251,191,36,0.3)",
+    pupilColor: "#022c22",
+    cheekColor: "rgba(251,191,36,0.35)",
+    mouthColor: "#065f46",
     aura: false,
+    bgScene: "#0f2922",
   },
   evoluindo: {
     gradient: "from-violet-600 via-purple-600 to-fuchsia-700",
@@ -84,10 +102,15 @@ const PHASE_CONFIG = {
     particleColor: "#a78bfa",
     label: "Evoluindo",
     labelColor: "text-violet-400",
-    bodyColor: "#8b5cf6",
+    bodyMain: "#a78bfa",
+    bodyLight: "#c4b5fd",
+    bodyDark: "#7c3aed",
     eyeColor: "#4c1d95",
+    pupilColor: "#2e1065",
     cheekColor: "rgba(251,146,60,0.3)",
+    mouthColor: "#4c1d95",
     aura: true,
+    bgScene: "#1a1033",
   },
   forte: {
     gradient: "from-amber-500 via-orange-500 to-rose-600",
@@ -96,12 +119,19 @@ const PHASE_CONFIG = {
     particleColor: "#fbbf24",
     label: "Forte",
     labelColor: "text-amber-400",
-    bodyColor: "#f59e0b",
+    bodyMain: "#fbbf24",
+    bodyLight: "#fde68a",
+    bodyDark: "#d97706",
     eyeColor: "#78350f",
+    pupilColor: "#451a03",
     cheekColor: "rgba(239,68,68,0.25)",
+    mouthColor: "#78350f",
     aura: true,
+    bgScene: "#2a1a0a",
   },
 };
+
+type PhaseConfig = typeof PHASE_CONFIG.fragilizado;
 
 // ─── Cálculo do Estado do Avatar ─────────────────────────────────────────────
 
@@ -115,12 +145,10 @@ function calculateAvatarState(
   const start = new Date(seasonStartDate);
   const relapseDateSet = new Set(relapseLogs.map((r) => r.dateKey));
 
-  // Calcular pontos: +10 por hábito feito, +5 por dia sem recaída, -15 por recaída
   let totalPoints = 0;
   const doneLogs = habitLogs.filter((l) => l.status === "done");
   totalPoints += doneLogs.length * 10;
 
-  // Dias da temporada até hoje
   const seasonDays: string[] = [];
   const end = new Date(seasonStartDate);
   end.setDate(end.getDate() + seasonDurationDays);
@@ -147,13 +175,11 @@ function calculateAvatarState(
 
   totalPoints = Math.max(0, totalPoints);
 
-  // Determinar nível
   let currentLevel = AVATAR_LEVELS[0];
   for (const lvl of AVATAR_LEVELS) {
     if (totalPoints >= lvl.minPts) currentLevel = lvl;
   }
 
-  // Energia (0-100) baseada na semana actual
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - today.getDay());
   const weekKey = weekStart.toISOString().split("T")[0];
@@ -172,7 +198,6 @@ function calculateAvatarState(
     (weekLogs.length * 15) - (weekRelapses.length * 25)
   ));
 
-  // Mood
   let mood: AvatarState["mood"] = "neutro";
   if (weeklyScore >= 80 && currentStreak >= 5) mood = "radiante";
   else if (weeklyScore >= 50) mood = "feliz";
@@ -190,119 +215,372 @@ function calculateAvatarState(
   };
 }
 
-// ─── SVG do Bichinho ─────────────────────────────────────────────────────────
+// ─── CSS Animations (injected once) ──────────────────────────────────────────
 
-function TamagotchiSVG({ state, phase }: { state: AvatarState; phase: typeof PHASE_CONFIG.fragilizado }) {
-  const moodEyes = {
-    triste: { cy: 42, rx: 4, ry: 5, brow: "M38,30 Q42,34 46,30 M54,30 Q58,34 62,30" },
-    neutro: { cy: 40, rx: 4, ry: 4, brow: "" },
-    feliz: { cy: 39, rx: 4.5, ry: 4.5, brow: "" },
-    radiante: { cy: 38, rx: 5, ry: 3, brow: "" },
+const ANIM_STYLE_ID = "avatar-espelho-anims";
+
+function injectAnimations() {
+  if (document.getElementById(ANIM_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = ANIM_STYLE_ID;
+  style.textContent = `
+    /* Breathing — gentle body scale */
+    @keyframes av-breathe {
+      0%, 100% { transform: scaleY(1) translateY(0); }
+      50% { transform: scaleY(1.035) translateY(-0.8px); }
+    }
+    .av-breathe { animation: av-breathe 3.2s ease-in-out infinite; transform-origin: center bottom; }
+
+    /* Idle floating — subtle up/down */
+    @keyframes av-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    .av-float { animation: av-float 4s ease-in-out infinite; }
+
+    /* Eye blink */
+    @keyframes av-blink {
+      0%, 42%, 44%, 100% { transform: scaleY(1); }
+      43% { transform: scaleY(0.08); }
+    }
+    .av-blink { animation: av-blink 4.5s ease-in-out infinite; transform-origin: center; }
+    .av-blink-delay { animation: av-blink 4.5s ease-in-out infinite 0.6s; transform-origin: center; }
+
+    /* Ear wiggle */
+    @keyframes av-ear-l {
+      0%, 85%, 100% { transform: rotate(-12deg); }
+      90% { transform: rotate(-20deg); }
+      95% { transform: rotate(-8deg); }
+    }
+    @keyframes av-ear-r {
+      0%, 85%, 100% { transform: rotate(12deg); }
+      90% { transform: rotate(20deg); }
+      95% { transform: rotate(8deg); }
+    }
+    .av-ear-l { animation: av-ear-l 6s ease-in-out infinite; transform-origin: 60% 90%; }
+    .av-ear-r { animation: av-ear-r 6s ease-in-out infinite 0.15s; transform-origin: 40% 90%; }
+
+    /* Tail wag */
+    @keyframes av-tail {
+      0%, 100% { transform: rotate(-15deg); }
+      25% { transform: rotate(10deg); }
+      50% { transform: rotate(-10deg); }
+      75% { transform: rotate(8deg); }
+    }
+    .av-tail { animation: av-tail 2s ease-in-out infinite; transform-origin: 20% 80%; }
+
+    /* Happy bounce */
+    @keyframes av-hop {
+      0%, 100% { transform: translateY(0) scaleY(1); }
+      15% { transform: translateY(0) scaleY(0.92); }
+      30% { transform: translateY(-8px) scaleY(1.05); }
+      50% { transform: translateY(0) scaleY(0.95); }
+      65% { transform: translateY(-4px) scaleY(1.02); }
+      80% { transform: translateY(0) scaleY(0.98); }
+    }
+    .av-hop { animation: av-hop 3s ease-in-out infinite; transform-origin: center bottom; }
+
+    /* Sad droop */
+    @keyframes av-droop {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(2px) rotate(-1.5deg); }
+    }
+    .av-droop { animation: av-droop 4s ease-in-out infinite; transform-origin: center bottom; }
+
+    /* Aura pulse */
+    @keyframes av-aura {
+      0%, 100% { opacity: 0.12; transform: scale(1); }
+      50% { opacity: 0.25; transform: scale(1.06); }
+    }
+    .av-aura { animation: av-aura 3s ease-in-out infinite; transform-origin: center; }
+
+    /* Sparkle twinkle */
+    @keyframes av-sparkle {
+      0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+      20% { opacity: 1; transform: scale(1) rotate(30deg); }
+      80% { opacity: 1; transform: scale(1) rotate(150deg); }
+    }
+    .av-sparkle-1 { animation: av-sparkle 2.5s ease-in-out infinite; }
+    .av-sparkle-2 { animation: av-sparkle 2.5s ease-in-out infinite 0.8s; }
+    .av-sparkle-3 { animation: av-sparkle 2.5s ease-in-out infinite 1.6s; }
+
+    /* Crown glow */
+    @keyframes av-crown {
+      0%, 100% { filter: drop-shadow(0 0 2px rgba(251,191,36,0.3)); }
+      50% { filter: drop-shadow(0 0 8px rgba(251,191,36,0.7)); }
+    }
+    .av-crown { animation: av-crown 2.5s ease-in-out infinite; }
+
+    /* Shadow breathing sync */
+    @keyframes av-shadow {
+      0%, 100% { rx: 20; opacity: 0.12; }
+      50% { rx: 22; opacity: 0.08; }
+    }
+    .av-shadow { animation: av-shadow 3.2s ease-in-out infinite; }
+
+    /* Cheek blush pulse */
+    @keyframes av-blush {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.5; }
+    }
+    .av-blush { animation: av-blush 3s ease-in-out infinite; }
+
+    /* Heart float (radiante) */
+    @keyframes av-heart-float {
+      0% { opacity: 0; transform: translateY(0) scale(0.5); }
+      30% { opacity: 1; transform: translateY(-6px) scale(1); }
+      100% { opacity: 0; transform: translateY(-18px) scale(0.6); }
+    }
+    .av-heart-1 { animation: av-heart-float 3s ease-out infinite; }
+    .av-heart-2 { animation: av-heart-float 3s ease-out infinite 1s; }
+    .av-heart-3 { animation: av-heart-float 3s ease-out infinite 2s; }
+
+    /* Tear drop (triste) */
+    @keyframes av-tear {
+      0%, 60% { opacity: 0; transform: translateY(0); }
+      65% { opacity: 0.7; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(10px); }
+    }
+    .av-tear { animation: av-tear 5s ease-in infinite; }
+    .av-tear-delay { animation: av-tear 5s ease-in infinite 2.5s; }
+
+    /* XP bar shimmer */
+    @keyframes av-shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(200%); }
+    }
+    .av-shimmer::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      animation: av-shimmer 2.5s ease-in-out infinite;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// ─── SVG Tamagotchi ──────────────────────────────────────────────────────────
+
+function TamagotchiSVG({ state, phase }: { state: AvatarState; phase: PhaseConfig }) {
+  const uid = useRef(`av-${Math.random().toString(36).slice(2, 8)}`).current;
+
+  useEffect(() => { injectAnimations(); }, []);
+
+  const scale = 0.82 + (state.level / 13) * 0.38;
+
+  // Body animation class
+  const bodyAnim =
+    state.mood === "radiante" ? "av-hop" :
+    state.mood === "feliz" ? "av-float" :
+    state.mood === "triste" ? "av-droop" :
+    "av-breathe";
+
+  // Mouth paths
+  const mouths: Record<AvatarState["mood"], string> = {
+    triste:   "M43,57 Q50,52 57,57",
+    neutro:   "M44,55 Q50,56 56,55",
+    feliz:    "M41,53 Q50,60 59,53",
+    radiante: "M39,51 Q50,63 61,51",
   };
-  const moodMouth = {
-    triste: "M42,58 Q50,52 58,58",
-    neutro: "M42,56 L58,56",
-    feliz: "M40,54 Q50,62 60,54",
-    radiante: "M38,52 Q50,64 62,52",
-  };
-
-  const eyes = moodEyes[state.mood];
-  const mouth = moodMouth[state.mood];
-  const bounce = state.mood === "radiante" ? "animate-bounce" : state.mood === "feliz" ? "animate-pulse" : "";
-
-  // Tamanho baseado no nível (cresce com o tempo)
-  const scale = 0.8 + (state.level / 13) * 0.4;
 
   return (
-    <svg viewBox="0 0 100 100" className={`w-full h-full ${bounce}`} style={{ filter: phase.aura ? `drop-shadow(0 0 12px ${phase.particleColor})` : "none" }}>
+    <svg viewBox="0 0 120 120" className="w-full h-full" style={{ overflow: "visible" }}>
       <defs>
-        <radialGradient id="bodyGrad" cx="50%" cy="40%" r="50%">
-          <stop offset="0%" stopColor={phase.bodyColor} stopOpacity="0.9" />
-          <stop offset="100%" stopColor={phase.bodyColor} stopOpacity="1" />
+        <radialGradient id={`${uid}-body`} cx="45%" cy="38%" r="55%">
+          <stop offset="0%" stopColor={phase.bodyLight} />
+          <stop offset="70%" stopColor={phase.bodyMain} />
+          <stop offset="100%" stopColor={phase.bodyDark} />
         </radialGradient>
-        <radialGradient id="shineGrad" cx="35%" cy="30%" r="30%">
-          <stop offset="0%" stopColor="white" stopOpacity="0.3" />
+        <radialGradient id={`${uid}-shine`} cx="38%" cy="28%" r="32%">
+          <stop offset="0%" stopColor="white" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="white" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`${uid}-belly`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="white" stopOpacity="0.12" />
           <stop offset="100%" stopColor="white" stopOpacity="0" />
         </radialGradient>
         {phase.aura && (
-          <radialGradient id="auraGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={phase.particleColor} stopOpacity="0.15" />
+          <radialGradient id={`${uid}-aura`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={phase.particleColor} stopOpacity="0.2" />
+            <stop offset="60%" stopColor={phase.particleColor} stopOpacity="0.05" />
             <stop offset="100%" stopColor={phase.particleColor} stopOpacity="0" />
           </radialGradient>
         )}
       </defs>
 
-      {/* Aura para fases avançadas */}
+      {/* Aura glow for advanced phases */}
       {phase.aura && (
-        <circle cx="50" cy="50" r="48" fill="url(#auraGrad)" className="animate-pulse" />
+        <ellipse cx="60" cy="62" rx="52" ry="48" fill={`url(#${uid}-aura)`} className="av-aura" />
       )}
 
-      {/* Sombra */}
-      <ellipse cx="50" cy="88" rx={22 * scale} ry={4} fill="black" opacity="0.15" />
+      {/* Ground shadow */}
+      <ellipse cx="60" cy="108" rx={20 * scale} ry="3.5" fill="black" className="av-shadow" />
 
-      {/* Corpo principal */}
-      <g transform={`translate(50,50) scale(${scale}) translate(-50,-50)`}>
-        {/* Corpo - forma arredondada de bichinho */}
-        <ellipse cx="50" cy="52" rx="28" ry="30" fill="url(#bodyGrad)" />
-        <ellipse cx="50" cy="52" rx="28" ry="30" fill="url(#shineGrad)" />
+      {/* Main body group with animation */}
+      <g className={bodyAnim}>
+        <g transform={`translate(60,62) scale(${scale}) translate(-60,-62)`}>
 
-        {/* Orelhinhas */}
-        <ellipse cx="30" cy="28" rx="8" ry="10" fill={phase.bodyColor} transform="rotate(-15,30,28)" />
-        <ellipse cx="70" cy="28" rx="8" ry="10" fill={phase.bodyColor} transform="rotate(15,70,28)" />
-        <ellipse cx="30" cy="27" rx="5" ry="7" fill={`${phase.bodyColor}88`} transform="rotate(-15,30,27)" />
-        <ellipse cx="70" cy="27" rx="5" ry="7" fill={`${phase.bodyColor}88`} transform="rotate(15,70,27)" />
+          {/* Tail */}
+          <path
+            d="M84,72 Q96,65 92,55 Q90,50 86,52"
+            stroke={phase.bodyDark}
+            strokeWidth="4.5"
+            strokeLinecap="round"
+            fill="none"
+            className="av-tail"
+          />
 
-        {/* Sobrancelhas (triste) */}
-        {eyes.brow && (
-          <path d={eyes.brow} stroke={phase.eyeColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        )}
-
-        {/* Olhos */}
-        {state.mood === "radiante" ? (
-          <>
-            {/* Olhos felizes em arco */}
-            <path d="M38,38 Q42,34 46,38" stroke={phase.eyeColor} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-            <path d="M54,38 Q58,34 62,38" stroke={phase.eyeColor} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          </>
-        ) : (
-          <>
-            <ellipse cx="42" cy={eyes.cy} rx={eyes.rx} ry={eyes.ry} fill={phase.eyeColor} />
-            <ellipse cx="58" cy={eyes.cy} rx={eyes.rx} ry={eyes.ry} fill={phase.eyeColor} />
-            {/* Brilho nos olhos */}
-            <circle cx="40" cy={eyes.cy - 1.5} r="1.5" fill="white" opacity="0.8" />
-            <circle cx="56" cy={eyes.cy - 1.5} r="1.5" fill="white" opacity="0.8" />
-          </>
-        )}
-
-        {/* Bochechas */}
-        <ellipse cx="33" cy="50" rx="5" ry="3" fill={phase.cheekColor} />
-        <ellipse cx="67" cy="50" rx="5" ry="3" fill={phase.cheekColor} />
-
-        {/* Boca */}
-        <path d={mouth} stroke={phase.eyeColor} strokeWidth="2" fill="none" strokeLinecap="round" />
-
-        {/* Patinhas */}
-        <ellipse cx="38" cy="78" rx="7" ry="4" fill={phase.bodyColor} />
-        <ellipse cx="62" cy="78" rx="7" ry="4" fill={phase.bodyColor} />
-
-        {/* Coroa para nível forte */}
-        {state.phase === "forte" && (
-          <g transform="translate(50,12)">
-            <polygon points="0,-8 -10,2 -6,2 -4,6 4,6 6,2 10,2" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.5" />
-            <circle cx="-5" cy="-2" r="1.5" fill="#ef4444" />
-            <circle cx="0" cy="-5" r="1.5" fill="#3b82f6" />
-            <circle cx="5" cy="-2" r="1.5" fill="#10b981" />
+          {/* Left ear */}
+          <g className="av-ear-l">
+            <ellipse cx="36" cy="28" rx="10" ry="14" fill={phase.bodyMain} />
+            <ellipse cx="36" cy="28" rx="6" ry="10" fill={phase.bodyLight} opacity="0.5" />
           </g>
-        )}
 
-        {/* Estrelinhas para evoluindo */}
-        {state.phase === "evoluindo" && (
-          <>
-            <text x="18" y="25" fontSize="6" className="animate-pulse">✦</text>
-            <text x="76" y="30" fontSize="5" className="animate-pulse" style={{ animationDelay: "0.5s" }}>✦</text>
-            <text x="22" y="70" fontSize="4" className="animate-pulse" style={{ animationDelay: "1s" }}>✦</text>
-          </>
-        )}
+          {/* Right ear */}
+          <g className="av-ear-r">
+            <ellipse cx="84" cy="28" rx="10" ry="14" fill={phase.bodyMain} />
+            <ellipse cx="84" cy="28" rx="6" ry="10" fill={phase.bodyLight} opacity="0.5" />
+          </g>
+
+          {/* Body */}
+          <ellipse cx="60" cy="60" rx="30" ry="33" fill={`url(#${uid}-body)`} />
+          <ellipse cx="60" cy="60" rx="30" ry="33" fill={`url(#${uid}-shine)`} />
+
+          {/* Belly spot */}
+          <ellipse cx="60" cy="68" rx="16" ry="14" fill={`url(#${uid}-belly)`} />
+
+          {/* Feet */}
+          <ellipse cx="45" cy="90" rx="9" ry="5" fill={phase.bodyDark} />
+          <ellipse cx="75" cy="90" rx="9" ry="5" fill={phase.bodyDark} />
+          {/* Foot highlights */}
+          <ellipse cx="44" cy="89" rx="5" ry="2.5" fill={phase.bodyMain} opacity="0.4" />
+          <ellipse cx="74" cy="89" rx="5" ry="2.5" fill={phase.bodyMain} opacity="0.4" />
+
+          {/* Arms / paws */}
+          <ellipse cx="33" cy="65" rx="6" ry="8" fill={phase.bodyMain} transform="rotate(15,33,65)" />
+          <ellipse cx="87" cy="65" rx="6" ry="8" fill={phase.bodyMain} transform="rotate(-15,87,65)" />
+
+          {/* ── Face ── */}
+
+          {/* Eyes with blink */}
+          {state.mood === "radiante" ? (
+            <>
+              {/* Happy closed eyes — arcs */}
+              <g className="av-blink">
+                <path d="M47,44 Q51,38 55,44" stroke={phase.eyeColor} strokeWidth="2.8" fill="none" strokeLinecap="round" />
+              </g>
+              <g className="av-blink-delay">
+                <path d="M65,44 Q69,38 73,44" stroke={phase.eyeColor} strokeWidth="2.8" fill="none" strokeLinecap="round" />
+              </g>
+            </>
+          ) : state.mood === "triste" ? (
+            <>
+              {/* Sad droopy eyes */}
+              <g className="av-blink">
+                <ellipse cx="51" cy="46" rx="5" ry="5.5" fill={phase.eyeColor} />
+                <circle cx="49.5" cy="44.5" r="2" fill="white" opacity="0.7" />
+                {/* Sad brow */}
+                <path d="M44,38 Q51,42 56,39" stroke={phase.eyeColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              </g>
+              <g className="av-blink-delay">
+                <ellipse cx="69" cy="46" rx="5" ry="5.5" fill={phase.eyeColor} />
+                <circle cx="67.5" cy="44.5" r="2" fill="white" opacity="0.7" />
+                <path d="M64,39 Q69,42 76,38" stroke={phase.eyeColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              </g>
+            </>
+          ) : (
+            <>
+              {/* Normal / happy eyes */}
+              <g className="av-blink">
+                <ellipse cx="51" cy="44" rx="5" ry={state.mood === "feliz" ? 5 : 4.5} fill={phase.eyeColor} />
+                <ellipse cx="51" cy="44" rx="3" ry={state.mood === "feliz" ? 3 : 2.5} fill={phase.pupilColor} />
+                <circle cx="49" cy="42.5" r="2" fill="white" opacity="0.85" />
+                <circle cx="53" cy="45" r="1" fill="white" opacity="0.4" />
+              </g>
+              <g className="av-blink-delay">
+                <ellipse cx="69" cy="44" rx="5" ry={state.mood === "feliz" ? 5 : 4.5} fill={phase.eyeColor} />
+                <ellipse cx="69" cy="44" rx="3" ry={state.mood === "feliz" ? 3 : 2.5} fill={phase.pupilColor} />
+                <circle cx="67" cy="42.5" r="2" fill="white" opacity="0.85" />
+                <circle cx="71" cy="45" r="1" fill="white" opacity="0.4" />
+              </g>
+            </>
+          )}
+
+          {/* Cheeks */}
+          {phase.cheekColor !== "transparent" && (
+            <>
+              <ellipse cx="40" cy="54" rx="6" ry="3.5" fill={phase.cheekColor} className="av-blush" />
+              <ellipse cx="80" cy="54" rx="6" ry="3.5" fill={phase.cheekColor} className="av-blush" />
+            </>
+          )}
+
+          {/* Nose */}
+          <ellipse cx="60" cy="50" rx="2.5" ry="2" fill={phase.eyeColor} opacity="0.6" />
+
+          {/* Mouth */}
+          <path
+            d={mouths[state.mood]}
+            stroke={phase.mouthColor}
+            strokeWidth="2.2"
+            fill={state.mood === "radiante" ? phase.mouthColor : "none"}
+            fillOpacity={state.mood === "radiante" ? 0.15 : 0}
+            strokeLinecap="round"
+          />
+
+          {/* Tears (sad) */}
+          {state.mood === "triste" && (
+            <>
+              <ellipse cx="46" cy="52" rx="1.5" ry="2.5" fill="#60a5fa" opacity="0.6" className="av-tear" />
+              <ellipse cx="74" cy="52" rx="1.5" ry="2.5" fill="#60a5fa" opacity="0.6" className="av-tear-delay" />
+            </>
+          )}
+
+          {/* Hearts floating (radiante) */}
+          {state.mood === "radiante" && (
+            <>
+              <g className="av-heart-1">
+                <path d="M28,30 C28,27 32,25 34,28 C36,25 40,27 40,30 C40,35 34,38 34,38 C34,38 28,35 28,30Z" fill="#f87171" opacity="0.7" />
+              </g>
+              <g className="av-heart-2">
+                <path d="M82,25 C82,23 85,21 86,23 C87,21 90,23 90,25 C90,28 86,30 86,30 C86,30 82,28 82,25Z" fill="#fb923c" opacity="0.6" />
+              </g>
+              <g className="av-heart-3">
+                <path d="M55,18 C55,16 57,15 58,16.5 C59,15 61,16 61,18 C61,20 58,22 58,22 C58,22 55,20 55,18Z" fill="#a78bfa" opacity="0.5" />
+              </g>
+            </>
+          )}
+
+          {/* Crown (forte) */}
+          {state.phase === "forte" && (
+            <g transform="translate(60,14)" className="av-crown">
+              <polygon
+                points="0,-10 -3,-4 -12,0 -8,0 -5,4 5,4 8,0 12,0 3,-4"
+                fill="#fbbf24"
+                stroke="#d97706"
+                strokeWidth="0.8"
+              />
+              <circle cx="-6" cy="-1" r="2" fill="#ef4444" />
+              <circle cx="0" cy="-6" r="2" fill="#3b82f6" />
+              <circle cx="6" cy="-1" r="2" fill="#10b981" />
+            </g>
+          )}
+
+          {/* Sparkles (evoluindo) */}
+          {state.phase === "evoluindo" && (
+            <>
+              <g className="av-sparkle-1" style={{ transformOrigin: "24px 22px" }}>
+                <path d="M24,18 L25,21 L28,22 L25,23 L24,26 L23,23 L20,22 L23,21Z" fill={phase.particleColor} opacity="0.8" />
+              </g>
+              <g className="av-sparkle-2" style={{ transformOrigin: "96px 30px" }}>
+                <path d="M96,27 L97,29 L99,30 L97,31 L96,33 L95,31 L93,30 L95,29Z" fill={phase.particleColor} opacity="0.7" />
+              </g>
+              <g className="av-sparkle-3" style={{ transformOrigin: "30px 78px" }}>
+                <path d="M30,76 L30.5,77.5 L32,78 L30.5,78.5 L30,80 L29.5,78.5 L28,78 L29.5,77.5Z" fill={phase.particleColor} opacity="0.6" />
+              </g>
+            </>
+          )}
+        </g>
       </g>
     </svg>
   );
@@ -315,8 +593,6 @@ export function AvatarEspelho({
   relapseLogs,
   seasonStartDate,
   seasonDurationDays,
-  userAvatar,
-  userName,
   onOpenForum,
 }: AvatarEspelhoProps) {
   const [showInfo, setShowInfo] = useState(false);
@@ -342,13 +618,11 @@ export function AvatarEspelho({
 
   return (
     <div className="w-full">
-      {/* Container principal com gradiente */}
       <div className={`relative rounded-3xl overflow-hidden border ${phaseConfig.borderColor} ${phaseConfig.bgGlow}`}>
-        {/* Background gradiente */}
         <div className={`absolute inset-0 bg-gradient-to-br ${phaseConfig.gradient} opacity-10`} />
 
         <div className="relative p-5 sm:p-6">
-          {/* Header: Título + Info */}
+          {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Eye className={`w-4 h-4 ${phaseConfig.labelColor}`} />
@@ -365,38 +639,45 @@ export function AvatarEspelho({
             </button>
           </div>
 
-          {/* Info tooltip */}
           {showInfo && (
             <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-400 leading-relaxed">
-              Seu avatar reflete seu comportamento. Faça hábitos para evoluir, evite recaídas para manter a energia.
-              Ao atingir o <strong className="text-amber-300">Nível {COMMUNITY_UNLOCK_LEVEL}</strong>, a porta da comunidade será desbloqueada.
+              Seu avatar reflete seu comportamento real. Faça hábitos para evoluir, evite recaídas para manter a energia.
+              Ao atingir o <strong className={phaseConfig.labelColor}>Nível {COMMUNITY_UNLOCK_LEVEL}</strong>, a porta da comunidade será desbloqueada.
             </div>
           )}
 
-          {/* Layout: Avatar + Stats */}
+          {/* Avatar + Stats */}
           <div className="flex gap-5 items-center">
-            {/* Avatar SVG */}
+            {/* Avatar container */}
             <div className="relative flex-shrink-0">
-              <div className={`w-32 h-32 sm:w-36 sm:h-36 rounded-2xl bg-gradient-to-br ${phaseConfig.gradient} p-0.5`}>
-                <div className="w-full h-full rounded-[14px] bg-slate-900/80 flex items-center justify-center overflow-hidden">
+              <div
+                className={`w-36 h-36 sm:w-40 sm:h-40 rounded-2xl p-0.5`}
+                style={{ background: `linear-gradient(135deg, ${phaseConfig.bodyLight}, ${phaseConfig.bodyDark})` }}
+              >
+                <div
+                  className="w-full h-full rounded-[14px] flex items-center justify-center overflow-hidden"
+                  style={{ backgroundColor: phaseConfig.bgScene }}
+                >
                   <TamagotchiSVG state={state} phase={phaseConfig} />
                 </div>
               </div>
-              {/* Badge de nível */}
-              <div className={`absolute -bottom-2 -right-2 w-10 h-10 rounded-xl bg-gradient-to-br ${phaseConfig.gradient} flex items-center justify-center shadow-lg border-2 border-slate-900 ${animateLevel ? "scale-125" : "scale-100"} transition-transform duration-300`}>
+              {/* Level badge */}
+              <div
+                className={`absolute -bottom-2 -right-2 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border-2 border-slate-900 transition-transform duration-300 ${animateLevel ? "scale-125" : "scale-100"}`}
+                style={{ background: `linear-gradient(135deg, ${phaseConfig.bodyLight}, ${phaseConfig.bodyDark})` }}
+              >
                 <span className="text-white font-extrabold text-sm">{state.level}</span>
               </div>
             </div>
 
             {/* Stats */}
             <div className="flex-1 min-w-0 space-y-3">
-              {/* Nome do nível */}
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Nível {state.level}</p>
                 <p className="text-lg font-extrabold text-white leading-tight">{currentLevelData.name}</p>
               </div>
 
-              {/* Barra de XP */}
+              {/* XP bar */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] text-gray-500 font-medium">{state.totalPoints} pts</span>
@@ -404,10 +685,13 @@ export function AvatarEspelho({
                     <span className="text-[11px] text-gray-500 font-medium">{nextLevelData.minPts} pts</span>
                   )}
                 </div>
-                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                <div className="h-2.5 rounded-full bg-white/5 overflow-hidden relative">
                   <div
-                    className={`h-full rounded-full bg-gradient-to-r ${phaseConfig.gradient} transition-all duration-700 ease-out`}
-                    style={{ width: `${Math.min(100, progressToNext)}%` }}
+                    className="h-full rounded-full transition-all duration-700 ease-out relative av-shimmer"
+                    style={{
+                      width: `${Math.min(100, progressToNext)}%`,
+                      background: `linear-gradient(90deg, ${phaseConfig.bodyDark}, ${phaseConfig.bodyMain}, ${phaseConfig.bodyLight})`,
+                    }}
                   />
                 </div>
                 {nextLevelData && (
@@ -417,7 +701,7 @@ export function AvatarEspelho({
                 )}
               </div>
 
-              {/* Mini stats */}
+              {/* Mini stats — no emojis */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06]">
                   <Flame className="w-3.5 h-3.5 text-orange-400 mx-auto mb-0.5" />
@@ -431,31 +715,28 @@ export function AvatarEspelho({
                 </div>
                 <div className="text-center px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06]">
                   <Heart className="w-3.5 h-3.5 text-pink-400 mx-auto mb-0.5" />
-                  <p className="text-xs font-bold text-white capitalize">{state.mood === "radiante" ? "😊" : state.mood === "feliz" ? "🙂" : state.mood === "neutro" ? "😐" : "😔"}</p>
+                  <p className="text-xs font-bold text-white">{MOOD_LABELS[state.mood]}</p>
                   <p className="text-[9px] text-gray-500">Humor</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Porta da Comunidade */}
+          {/* Community Gate */}
           <div className="mt-5">
-            <div className={`
-              flex items-center gap-3 p-3.5 rounded-2xl border transition-all
-              ${state.communityUnlocked
-                ? "bg-amber-500/10 border-amber-500/20 cursor-pointer hover:bg-amber-500/15"
-                : "bg-white/[0.02] border-white/[0.06] opacity-60"
-              }
-            `}
+            <div
+              className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all ${
+                state.communityUnlocked
+                  ? "bg-amber-500/10 border-amber-500/20 cursor-pointer hover:bg-amber-500/15"
+                  : "bg-white/[0.02] border-white/[0.06] opacity-60"
+              }`}
               onClick={state.communityUnlocked ? onOpenForum : undefined}
             >
-              <div className={`
-                w-10 h-10 rounded-xl flex items-center justify-center
-                ${state.communityUnlocked
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                state.communityUnlocked
                   ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/20"
                   : "bg-white/5 border border-white/10"
-                }
-              `}>
+              }`}>
                 {state.communityUnlocked ? (
                   <Unlock className="w-5 h-5 text-white" />
                 ) : (
@@ -473,10 +754,9 @@ export function AvatarEspelho({
                   }
                 </p>
               </div>
-              {state.communityUnlocked && (
+              {state.communityUnlocked ? (
                 <ChevronRight className="w-5 h-5 text-amber-400 flex-shrink-0" />
-              )}
-              {!state.communityUnlocked && (
+              ) : (
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
                     <span className="text-[10px] font-bold text-gray-500">{state.level}/{COMMUNITY_UNLOCK_LEVEL}</span>
@@ -486,7 +766,7 @@ export function AvatarEspelho({
             </div>
           </div>
 
-          {/* Timeline de evolução (últimos 7 dias) */}
+          {/* 7-day timeline */}
           <div className="mt-4">
             <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider mb-2">Últimos 7 dias</p>
             <div className="flex gap-1.5">
@@ -520,13 +800,13 @@ export function AvatarEspelho({
             </div>
             <div className="flex items-center gap-4 mt-2 justify-center">
               <span className="flex items-center gap-1 text-[9px] text-gray-500">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" /> Hábito feito
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Hábito feito
               </span>
               <span className="flex items-center gap-1 text-[9px] text-gray-500">
-                <span className="w-2 h-2 rounded-full bg-red-500" /> Recaída
+                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Recaída
               </span>
               <span className="flex items-center gap-1 text-[9px] text-gray-500">
-                <span className="w-2 h-2 rounded-full bg-gray-700" /> Sem registro
+                <span className="w-2 h-2 rounded-full bg-gray-700 inline-block" /> Sem registro
               </span>
             </div>
           </div>
