@@ -352,14 +352,14 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
         ) : (
           <div className="divide-y divide-gray-50">
             {todayHabits.map((habit) => {
-              const status = getHabitStatusToday(habit.id);
+              const status = getHabitStatusToday(habit.habitId);
               const isDone = status === "done";
               const isSkipped = status === "skipped";
               const isPending = !status;
 
               return (
                 <div
-                  key={habit.id}
+                  key={habit.habitId}
                   className={`px-4 py-3 flex items-center gap-3 transition-colors ${
                     isDone ? "bg-emerald-50/50" : isSkipped ? "bg-gray-50/50" : "bg-white"
                   }`}
@@ -378,7 +378,7 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
                     <p className={`font-semibold text-sm truncate ${
                       isDone ? "text-emerald-700" : isSkipped ? "text-gray-400 line-through" : "text-gray-800"
                     }`}>
-                      {habit.name}
+                      {habit.habitName}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Clock className="w-3 h-3 text-gray-400" />
@@ -390,14 +390,14 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
                   {isPending ? (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button
-                        onClick={() => onLogHabit(habit.id, "done")}
+                        onClick={() => onLogHabit(habit.habitId, "done")}
                         className="px-3 py-1.5 rounded-xl text-xs font-bold text-white shadow-sm transition-all active:scale-95"
                         style={{ background: "linear-gradient(135deg, #10b981, #059669)", boxShadow: "0 2px 8px rgba(16,185,129,0.3)" }}
                       >
                         Feito
                       </button>
                       <button
-                        onClick={() => onLogHabit(habit.id, "skipped")}
+                        onClick={() => onLogHabit(habit.habitId, "skipped")}
                         className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
                       >
                         Pular
@@ -723,18 +723,18 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
             ) : (
               <div className="space-y-1.5">
                 {selectedDayData.dayHabits.map((habit) => {
-                  const log = selectedDayData.dayLogs.find((l) => l.habitId === habit.id);
+                  const log = selectedDayData.dayLogs.find((l) => l.habitId === habit.habitId);
                   const isDone = log?.status === "done";
                   const isSkipped = log?.status === "skipped";
                   return (
-                    <div key={habit.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isDone ? "bg-emerald-50" : isSkipped ? "bg-gray-50" : "bg-gray-50"}`}>
+                    <div key={habit.habitId} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isDone ? "bg-emerald-50" : isSkipped ? "bg-gray-50" : "bg-gray-50"}`}>
                       <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${isDone ? "bg-emerald-200" : isSkipped ? "bg-gray-200" : "bg-gray-200"}`}>
                         {isDone ? <CheckCircle2 className="w-3 h-3 text-emerald-600" /> :
                          isSkipped ? <SkipForward className="w-3 h-3 text-gray-400" /> :
                          <Target className="w-3 h-3 text-gray-400" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-medium truncate ${isDone ? "text-emerald-700" : isSkipped ? "text-gray-400 line-through" : "text-gray-600"}`}>{habit.name}</p>
+                        <p className={`text-xs font-medium truncate ${isDone ? "text-emerald-700" : isSkipped ? "text-gray-400 line-through" : "text-gray-600"}`}>{habit.habitName}</p>
                       </div>
                       <span className="text-[10px] text-gray-400">{habit.timeSlot} • {habit.durationMinutes}min</span>
                     </div>
@@ -776,15 +776,15 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
               const dow = date.getDay();
               if (habit.daysOfWeek.includes(dow)) {
                 scheduled++;
-                const dayLog = logs.find((l) => l.habitId === habit.id && l.date.split("T")[0] === day && l.status === "done");
+                const dayLog = logs.find((l) => l.habitId === habit.habitId && l.date.split("T")[0] === day && l.status === "done");
                 if (dayLog) done++;
               }
             }
             const rate = scheduled > 0 ? Math.round((done / scheduled) * 100) : 0;
             return (
-              <div key={habit.id}>
+              <div key={habit.habitId}>
                 <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-700 truncate max-w-[55%]">{habit.name}</span>
+                    <span className="text-xs font-medium text-gray-700 truncate max-w-[55%]">{habit.habitName}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-gray-400">Feito em {done} de {scheduled} dias</span>
                     <span className={`text-[10px] font-bold ${rate >= 70 ? "text-emerald-600" : rate >= 40 ? "text-amber-600" : "text-red-500"}`}>{rate}%</span>
