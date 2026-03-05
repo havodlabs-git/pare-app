@@ -53,7 +53,7 @@ interface Professional {
   isActive: boolean;
 }
 
-type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas' | 'content' | 'achievements';
+type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas' | 'content' | 'achievements' | 'settings';
 
 const AdminPanel: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -112,6 +112,12 @@ const AdminPanel: React.FC = () => {
   const [achievementForm, setAchievementForm] = useState({
     name: '', description: '', icon: 'star', requiredDays: 0, points: 0, isActive: true, order: 0
   });
+
+  // Feature Flags
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({
+    avatarEspelhoEnabled: true,
+  });
+  const [savingFlags, setSavingFlags] = useState(false);
 
   // Check if already logged in
   useEffect(() => {
@@ -209,6 +215,14 @@ const AdminPanel: React.FC = () => {
               { id: 'half_year', name: 'Meio Ano', description: '180 dias consecutivos sem recaída', icon: 'trophy', requiredDays: 180, points: 1000, isActive: true, order: 10 },
               { id: 'year_legend', name: 'Lenda de 1 Ano', description: '365 dias consecutivos sem recaída', icon: 'trophy', requiredDays: 365, points: 2000, isActive: true, order: 11 },
             ]);
+          }
+          break;
+        case 'settings':
+          try {
+            const flagsRes = await api.get('/admin/feature-flags');
+            setFeatureFlags(flagsRes.data.data.flags || { avatarEspelhoEnabled: true });
+          } catch {
+            setFeatureFlags({ avatarEspelhoEnabled: true });
           }
           break;
       }
@@ -518,6 +532,7 @@ const AdminPanel: React.FC = () => {
     { id: 'content', label: 'Vícios & Hábitos', icon: Settings },
     { id: 'achievements', label: 'Conquistas', icon: Trophy },
     { id: 'videochamadas', label: 'Videochamadas', icon: Video },
+    { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 
   // Login screen
@@ -1630,6 +1645,78 @@ const AdminPanel: React.FC = () => {
             )}
 
             {/* Videochamadas - Jitsi Meet */}
+            {activeTab === 'settings' && (
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 mb-6">Configurações da Plataforma</h2>
+                <p className="text-zinc-500 text-sm mb-8">Gerir funcionalidades e feature flags da plataforma. As alterações são aplicadas imediatamente a todos os utilizadores.</p>
+
+                {/* Feature Flags */}
+                <div className="bg-white rounded-xl border border-zinc-200 p-6 max-w-2xl">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-zinc-900">Feature Flags</h3>
+                      <p className="text-sm text-zinc-500">Ativar ou desativar funcionalidades da plataforma</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Avatar Espelho / Visão Espelho */}
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-zinc-100 hover:border-zinc-200 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          featureFlags.avatarEspelhoEnabled ? 'bg-violet-100' : 'bg-zinc-100'
+                        }`}>
+                          <Eye className={`w-5 h-5 ${featureFlags.avatarEspelhoEnabled ? 'text-violet-600' : 'text-zinc-400'}`} />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-zinc-900">Visão Espelho (Avatar Espelho)</h4>
+                          <p className="text-sm text-zinc-500 mt-0.5">Exibe o avatar espelho com stats, conquistas e timeline na aba Início dos utilizadores</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newValue = !featureFlags.avatarEspelhoEnabled;
+                          setSavingFlags(true);
+                          try {
+                            await api.put('/admin/feature-flags', { flags: { avatarEspelhoEnabled: newValue } });
+                            setFeatureFlags(prev => ({ ...prev, avatarEspelhoEnabled: newValue }));
+                          } catch {
+                            alert('Erro ao atualizar flag');
+                          }
+                          setSavingFlags(false);
+                        }}
+                        disabled={savingFlags}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                          featureFlags.avatarEspelhoEnabled ? 'bg-violet-600' : 'bg-zinc-300'
+                        } ${savingFlags ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                            featureFlags.avatarEspelhoEnabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Estado actual */}
+                    <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
+                      featureFlags.avatarEspelhoEnabled 
+                        ? 'bg-green-50 text-green-700' 
+                        : 'bg-amber-50 text-amber-700'
+                    }`}>
+                      {featureFlags.avatarEspelhoEnabled 
+                        ? <><CheckCircle className="w-4 h-4" /> Visão Espelho está <strong>ativa</strong> para todos os utilizadores</>
+                        : <><Eye className="w-4 h-4" /> Visão Espelho está <strong>desativada</strong> — os utilizadores verão apenas o SeasonDashboard</>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'videochamadas' && (
               <div>
                 <h2 className="text-2xl font-bold text-zinc-900 mb-6">Videochamadas</h2>

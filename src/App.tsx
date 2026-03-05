@@ -197,6 +197,24 @@ export default function App() {
     return { notifications: { dailyReminders: true, motivationalMessages: true, achievementUnlocked: true }, privacy: { profileVisibleInForum: true, showDaysInProfile: true } };
   });
 
+  // Feature Flags da plataforma
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>(() => {
+    const cached = localStorage.getItem('pare_feature_flags');
+    return cached ? JSON.parse(cached) : { avatarEspelhoEnabled: true };
+  });
+
+  // Carregar feature flags do backend
+  useEffect(() => {
+    api.getFeatureFlags().then((res: any) => {
+      if (res?.data?.flags) {
+        setFeatureFlags(res.data.flags);
+        localStorage.setItem('pare_feature_flags', JSON.stringify(res.data.flags));
+      }
+    }).catch(() => {
+      // Silencioso — usar cache ou defaults
+    });
+  }, []);
+
   // Refresh user data from backend on mount to sync plan changes
   useEffect(() => {
     if (isAuthenticated && refreshUser) {
@@ -751,6 +769,7 @@ export default function App() {
             <TabsContent value="dashboard">
               {hasSeason ? (
                 <div className="space-y-6">
+                {featureFlags.avatarEspelhoEnabled !== false && (
                 <AvatarEspelho
                   habitLogs={userProfile.habitLogs || []}
                   relapseLogs={userProfile.relapseLogs || []}
@@ -762,6 +781,7 @@ export default function App() {
                   onOpenForum={() => setActiveTab("forum")}
                   onOpenAchievements={() => setActiveTab("achievements")}
                 />
+                )}
                 <SeasonDashboard
                   season={userProfile.currentSeason!}
                   profile={userProfile.behavioralProfile!}

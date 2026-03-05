@@ -189,6 +189,12 @@ class ApiService {
     });
   }
 
+  // Feature Flags (endpoint público - sem auth)
+  async getFeatureFlags() {
+    const response = await this.request('/api/admin/public/feature-flags', { method: 'GET', auth: false });
+    return response;
+  }
+
   // Module endpoints
   async getModules() {
     return await this.request(API_ENDPOINTS.GET_MODULES);
