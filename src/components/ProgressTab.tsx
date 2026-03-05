@@ -191,6 +191,9 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
   }, [seasonDays, relapseLogs]);
 
   // ── Dados para gráfico de evolução (últimos 14 dias) ──
+  // CORRECÇÃO: Só mostra dados para dias dentro do período da season actual.
+  // Dias anteriores ao início da season mostram null (sem ponto no gráfico).
+  const seasonStartKey = season.startDate.split("T")[0];
   const areaData = useMemo(() => {
     const days: string[] = [];
     for (let i = 13; i >= 0; i--) {
@@ -200,6 +203,17 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
     }
     return days.map((dateStr) => {
       const date = new Date(dateStr + "T12:00:00");
+      const hasRelapse = relapseLogs.some((r) => r.dateKey === dateStr) ? 1 : 0;
+
+      // Se o dia é anterior ao início da season, não calcular % de conclusão
+      if (dateStr < seasonStartKey) {
+        return {
+          date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+          conclusao: null as number | null,
+          recaida: hasRelapse,
+        };
+      }
+
       const dow = date.getDay();
       const dayHabits = season.habits.filter((h) => h.daysOfWeek.includes(dow));
       const dayHabitIds = new Set(dayHabits.map((h) => h.habitId));
@@ -207,15 +221,15 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
       const doneIds = new Set(dayLogs.filter((l) => l.status === "done" && dayHabitIds.has(l.habitId)).map((l) => l.habitId));
       const done = Math.min(doneIds.size, dayHabits.length);
       const scheduled = dayHabits.length;
-      const pct = scheduled > 0 ? Math.min(100, Math.round((done / scheduled) * 100)) : 0;
-      const hasRelapse = relapseLogs.some((r) => r.dateKey === dateStr) ? 1 : 0;
+      // Se não há hábitos programados para este dia da semana, mostrar null
+      const pct = scheduled > 0 ? Math.min(100, Math.round((done / scheduled) * 100)) : null;
       return {
         date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
         conclusao: pct,
         recaida: hasRelapse,
       };
     });
-  }, [logs, relapseLogs, season.habits]);
+  }, [logs, relapseLogs, season.habits, seasonStartKey]);
 
   // ── Dados para gráfico de barras por dia da semana ──
   const weekdayData = useMemo(() => {
@@ -567,7 +581,7 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
             <Tooltip
               contentStyle={{ background: "#1e1b4b", border: "none", borderRadius: "12px", color: "#fff", fontSize: "11px" }}
               labelStyle={{ color: "#c4b5fd" }}
-              formatter={(v: number, name: string) => [name === "conclusao" ? `${v}%` : v, name === "conclusao" ? "Conclusão" : "Recaída"]}
+              formatter={(v: number | null, name: string) => [v === null ? "Sem dados" : name === "conclusao" ? `${v}%` : v, name === "conclusao" ? "Conclusão" : "Recaída"]}
             />
             <Legend
               iconType="circle"
@@ -575,7 +589,7 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
               wrapperStyle={{ fontSize: "10px", paddingTop: "4px" }}
               formatter={(value) => value === "conclusao" ? "% Conclusão" : "Recaída (0/1)"}
             />
-            <Line type="monotone" dataKey="conclusao" stroke="#7c3aed" strokeWidth={2} name="conclusao" dot={{ fill: "#7c3aed", r: 2 }} activeDot={{ r: 4 }} />
+            <Line type="monotone" dataKey="conclusao" stroke="#7c3aed" strokeWidth={2} name="conclusao" dot={{ fill: "#7c3aed", r: 2 }} activeDot={{ r: 4 }} connectNulls={false} />
             <Line type="monotone" dataKey="recaida" stroke="#ef4444" strokeWidth={2} name="recaida" dot={{ fill: "#ef4444", r: 2 }} activeDot={{ r: 4 }} strokeDasharray="4 2" />
           </LineChart>
         </ResponsiveContainer>
