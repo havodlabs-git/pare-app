@@ -613,6 +613,8 @@ export function ProgressTab({ season, profile, logs, relapseLogs, onLogHabit }: 
             <YAxis tick={{ fontSize: 9, fill: "#9ca3af" }} tickLine={false} axisLine={false} unit="%" domain={[0, 100]} />
             <Tooltip
               contentStyle={{ background: "#1e1b4b", border: "none", borderRadius: "12px", color: "#fff", fontSize: "11px" }}
+              labelStyle={{ color: "#c4b5fd" }}
+              itemStyle={{ color: "#fff" }}
               formatter={(v: number) => [`${v}%`, "Taxa"]}
             />
             <Bar dataKey="taxa" radius={[4, 4, 0, 0]} maxBarSize={36}>
