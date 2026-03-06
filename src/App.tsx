@@ -381,6 +381,54 @@ export default function App() {
     toast.success("Sua jornada começa agora! Boa sorte na sua temporada!");
   };
 
+  // ── Handler de Hábito Customizado ─────────────────────────────────────────
+
+  const handleAddCustomHabit = (habit: ScheduledHabit & { isCustom: true; sharedWithCommunity: boolean }) => {
+    if (!userProfile || !currentUser) return;
+    const season = userProfile.currentSeason;
+    if (!season) return;
+
+    // Adicionar o hábito à season atual
+    const updatedSeason: Season = {
+      ...season,
+      habits: [...season.habits, habit],
+    };
+
+    // Adicionar também ao weeklySchedule para consistência
+    const updatedSchedule = [...(userProfile.weeklySchedule || []), habit];
+
+    const updated: UserProfile = {
+      ...userProfile,
+      currentSeason: updatedSeason,
+      weeklySchedule: updatedSchedule,
+    };
+
+    setUserProfile(updated);
+    localStorage.setItem(`${USER_PROFILE_PREFIX}${currentUser.email}`, JSON.stringify(updated));
+
+    // Partilhar com a comunidade via backend se solicitado
+    if (habit.sharedWithCommunity) {
+      const token = localStorage.getItem("pare_auth_token");
+      if (token) {
+        fetch(`${import.meta.env.VITE_API_URL || "https://pare-app-backend-295077330394.us-central1.run.app"}/api/habits/community`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            habitId: habit.habitId,
+            habitName: habit.habitName,
+            category: habit.category,
+            durationMinutes: habit.durationMinutes,
+            daysOfWeek: habit.daysOfWeek,
+          }),
+        }).catch(() => {}); // falha silenciosa
+      }
+    }
+
+    toast.success(`Hábito "${habit.habitName}" adicionado à temporada!${
+      habit.sharedWithCommunity ? " Partilhado com a comunidade 🌟" : ""
+    }`);
+  };
+
   // ── Handlers de Hábitos Diários ───────────────────────────────────────────
 
   const handleLogHabit = (habitId: string, status: HabitStatus) => {
@@ -800,6 +848,7 @@ export default function App() {
                   onRegisterRelapse={handleRegisterRelapse}
                   onViewForum={() => setActiveTab("forum")}
                   onViewStats={() => setActiveTab("stats")}
+                  onAddCustomHabit={handleAddCustomHabit}
                 />
                 </div>
               ) : (

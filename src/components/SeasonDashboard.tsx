@@ -5,9 +5,11 @@ import {
   ChevronRight, AlertTriangle, Shield, BarChart2, Sparkles,
   Heart, Brain, Crown
 } from "lucide-react";
-import type { Season } from "./WeeklyRoutineSetup";
+import { useState } from "react";
+import type { Season, ScheduledHabit } from "./WeeklyRoutineSetup";
 import type { BehavioralProfile } from "./OnboardingBehavioral";
 import { ALL_ACHIEVEMENTS } from "./Achievements";
+import { CustomHabitModal } from "./CustomHabitModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,6 +52,7 @@ interface SeasonDashboardProps {
   onRegisterRelapse: (habitId?: string) => void;
   onViewForum: () => void;
   onViewStats: () => void;
+  onAddCustomHabit: (habit: ScheduledHabit & { isCustom: true; sharedWithCommunity: boolean }) => void;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -138,9 +141,11 @@ export function SeasonDashboard({
   onLogHabit,
   onRegisterRelapse,
   onViewForum,
+  onAddCustomHabit,
 }: SeasonDashboardProps) {
   const [activeTab, setActiveTab] = useState<"home" | "achievements" | "stats">("home");
   const [showRelapseConfirm, setShowRelapseConfirm] = useState<string | null>(null);
+  const [showCustomHabitModal, setShowCustomHabitModal] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
   const todayDayOfWeek = new Date().getDay();
@@ -369,6 +374,25 @@ export function SeasonDashboard({
             </div>
           )}
 
+          {/* Adicionar Hábito Customizado */}
+          <button
+            onClick={() => setShowCustomHabitModal(true)}
+            className="w-full rounded-2xl p-4 flex items-center justify-between group transition-all hover:scale-[1.01] active:scale-[0.99] bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 shadow-sm hover:border-violet-400 hover:shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-violet-800 font-semibold text-sm">Adicionar Hábito Personalizado</p>
+                <p className="text-violet-500 text-xs">Crie um hábito à medida para esta temporada</p>
+              </div>
+            </div>
+            <div className="w-7 h-7 rounded-full bg-violet-600 flex items-center justify-center">
+              <span className="text-white text-lg font-bold leading-none">+</span>
+            </div>
+          </button>
+
           {/* Community CTA */}
           <button
             onClick={onViewForum}
@@ -386,6 +410,17 @@ export function SeasonDashboard({
             <ChevronRight className="w-5 h-5 text-violet-400 group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>
+      )}
+
+      {/* ── Modal de Hábito Customizado ─────────────────────────────────────── */}
+      {showCustomHabitModal && (
+        <CustomHabitModal
+          onClose={() => setShowCustomHabitModal(false)}
+          onSave={(habit) => {
+            onAddCustomHabit(habit);
+            setShowCustomHabitModal(false);
+          }}
+        />
       )}
 
       {/* ── Tab: Conquistas ─────────────────────────────────────────────────── */}
