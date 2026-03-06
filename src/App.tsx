@@ -684,40 +684,42 @@ export default function App() {
               />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Bloco Plano + Nível (empilhado em coluna) */}
               {userProfile.plan !== "free" && (
-                <Badge
-                  className={`hidden md:flex ${
-                    userProfile.plan === "premium"
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500"
-                      : "bg-gradient-to-r from-amber-500 to-orange-500"
-                  } text-white border-0`}
-                >
-                  {userProfile.plan === "premium" ? "Premium" : "Elite"}
-                </Badge>
+                <div className="hidden md:flex flex-col items-end gap-0.5 mr-1">
+                  <Badge
+                    className={`${
+                      userProfile.plan === "premium"
+                        ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                        : "bg-gradient-to-r from-amber-500 to-orange-500"
+                    } text-white border-0 text-[11px] px-2 py-0.5 h-auto`}
+                  >
+                    {userProfile.plan === "premium" ? "Premium" : "Elite"}
+                  </Badge>
+                  <p className="text-[11px] text-gray-500 whitespace-nowrap leading-tight">
+                    Nível {behavioralPoints.currentLevel} — {behavioralPoints.levelName}
+                  </p>
+                  <p className="text-[11px] text-gray-400 whitespace-nowrap leading-tight">
+                    {behavioralPoints.totalPoints} pts
+                  </p>
+                </div>
               )}
-
-              <div className="text-right hidden lg:block">
-                <p className="text-xs text-gray-500">
-                  Nível {behavioralPoints.currentLevel} — {behavioralPoints.levelName} •{" "}
-                  {behavioralPoints.totalPoints} pts
-                </p>
-              </div>
 
               {/* Botão do utilizador — abre o drawer */}
               <button
                 onClick={() => setShowProfileDrawer(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden flex-shrink-0">
                   {userProfile.behavioralProfile?.avatar || currentUser?.avatar ? (
                     <img src={userProfile.behavioralProfile?.avatar || currentUser?.avatar} alt="avatar" className="w-full h-full object-cover" />
                   ) : (
                     currentUser?.name?.charAt(0)?.toUpperCase() || "U"
                   )}
                 </div>
-                <span className="hidden md:inline font-medium text-sm text-gray-700">{currentUser?.name}</span>
-                <ChevronDown className="w-4 h-4 text-gray-400 hidden md:inline" />
+                <span className="hidden md:inline font-medium text-sm text-gray-700 max-w-[130px] truncate">{currentUser?.name}</span>
+                <ChevronDown className="w-4 h-4 text-gray-400 hidden md:inline flex-shrink-0" />
               </button>
             </div>
           </div>
