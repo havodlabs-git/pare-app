@@ -4,7 +4,8 @@ import {
   BarChart3, Search, MoreVertical, Ban, CheckCircle, 
   Trash2, Edit, Plus, Video, X, Eye, ChevronLeft, ChevronRight,
   TrendingUp, DollarSign, Clock, Shield, LogIn, LogOut, Upload, Image,
-  Award, Trophy, Star, Flame, Zap, Target, Diamond, Rocket, Crown, ToggleLeft, ToggleRight
+  Award, Trophy, Star, Flame, Zap, Target, Diamond, Rocket, Crown, ToggleLeft, ToggleRight,
+  MessageCircle, Quote
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -53,7 +54,7 @@ interface Professional {
   isActive: boolean;
 }
 
-type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas' | 'content' | 'achievements' | 'settings';
+type Tab = 'dashboard' | 'users' | 'posts' | 'professionals' | 'appointments' | 'videochamadas' | 'content' | 'achievements' | 'quotes' | 'settings';
 
 const AdminPanel: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -112,6 +113,13 @@ const AdminPanel: React.FC = () => {
   const [achievementForm, setAchievementForm] = useState({
     name: '', description: '', icon: 'star', requiredDays: 0, points: 0, isActive: true, order: 0
   });
+
+  // Mensagens Motivacionais
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [editingQuote, setEditingQuote] = useState<any | null>(null);
+  const [quoteForm, setQuoteForm] = useState({ text: '', author: '', category: 'geral', isActive: true });
+  const [seedingQuotes, setSeedingQuotes] = useState(false);
 
   // Feature Flags
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({
@@ -215,6 +223,14 @@ const AdminPanel: React.FC = () => {
               { id: 'half_year', name: 'Meio Ano', description: '180 dias consecutivos sem recaída', icon: 'trophy', requiredDays: 180, points: 1000, isActive: true, order: 10 },
               { id: 'year_legend', name: 'Lenda de 1 Ano', description: '365 dias consecutivos sem recaída', icon: 'trophy', requiredDays: 365, points: 2000, isActive: true, order: 11 },
             ]);
+          }
+          break;
+        case 'quotes':
+          try {
+            const quotesRes = await api.get('/admin/motivational-quotes');
+            setQuotes(quotesRes.data.data.quotes || []);
+          } catch {
+            setQuotes([]);
           }
           break;
         case 'settings':
@@ -531,6 +547,7 @@ const AdminPanel: React.FC = () => {
     { id: 'professionals', label: 'Psicólogos', icon: UserCheck },
     { id: 'content', label: 'Vícios & Hábitos', icon: Settings },
     { id: 'achievements', label: 'Conquistas', icon: Trophy },
+    { id: 'quotes', label: 'Mensagens', icon: MessageCircle },
     { id: 'videochamadas', label: 'Videochamadas', icon: Video },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
@@ -1644,6 +1661,155 @@ const AdminPanel: React.FC = () => {
               </div>
             )}
 
+            {/* Mensagens Motivacionais */}
+            {activeTab === 'quotes' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
+                    <MessageCircle className="w-6 h-6 text-amber-500" />
+                    Mensagens Motivacionais
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={async () => {
+                        if (!confirm('Popular com as 12 mensagens padrão? (Só funciona se a lista estiver vazia)')) return;
+                        setSeedingQuotes(true);
+                        try {
+                          await api.post('/admin/motivational-quotes/seed');
+                          loadData();
+                        } catch { alert('Erro ao popular mensagens'); }
+                        setSeedingQuotes(false);
+                      }}
+                      disabled={seedingQuotes}
+                      className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors text-sm"
+                    >
+                      {seedingQuotes ? 'Populando...' : 'Popular Padrões'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingQuote(null);
+                        setQuoteForm({ text: '', author: '', category: 'geral', isActive: true });
+                        setShowQuoteModal(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Nova Mensagem
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-white rounded-xl border border-zinc-200 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MessageCircle className="w-4 h-4 text-amber-500" />
+                      <span className="text-sm text-zinc-500">Total</span>
+                    </div>
+                    <p className="text-2xl font-bold text-zinc-900">{quotes.length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-zinc-200 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span className="text-sm text-zinc-500">Ativas</span>
+                    </div>
+                    <p className="text-2xl font-bold text-zinc-900">{quotes.filter((q: any) => q.isActive).length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-zinc-200 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Ban className="w-4 h-4 text-red-400" />
+                      <span className="text-sm text-zinc-500">Inativas</span>
+                    </div>
+                    <p className="text-2xl font-bold text-zinc-900">{quotes.filter((q: any) => !q.isActive).length}</p>
+                  </div>
+                </div>
+
+                {/* Quotes List */}
+                <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-zinc-200 bg-zinc-50">
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">#</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Mensagem</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Autor</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Categoria</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Estado</th>
+                        <th className="text-left p-4 text-sm font-semibold text-zinc-600">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {quotes.map((quote: any, index: number) => (
+                        <tr key={quote.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
+                          <td className="p-4 text-sm text-zinc-500">{index + 1}</td>
+                          <td className="p-4">
+                            <div className="flex items-start gap-2">
+                              <MessageCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                              <p className="text-sm text-zinc-800 italic max-w-md">"{quote.text}"</p>
+                            </div>
+                          </td>
+                          <td className="p-4 text-sm text-zinc-500">{quote.author || <span className="text-zinc-300">—</span>}</td>
+                          <td className="p-4">
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs">{quote.category || 'geral'}</span>
+                          </td>
+                          <td className="p-4">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await api.put(`/admin/motivational-quotes/${quote.id}`, { ...quote, isActive: !quote.isActive });
+                                  loadData();
+                                } catch { alert('Erro ao atualizar estado'); }
+                              }}
+                              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                                quote.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                              }`}
+                            >
+                              {quote.isActive ? <CheckCircle className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
+                              {quote.isActive ? 'Ativa' : 'Inativa'}
+                            </button>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => {
+                                  setEditingQuote(quote);
+                                  setQuoteForm({ text: quote.text, author: quote.author || '', category: quote.category || 'geral', isActive: quote.isActive });
+                                  setShowQuoteModal(true);
+                                }}
+                                className="p-2 hover:bg-indigo-50 rounded-lg transition-colors"
+                                title="Editar"
+                              >
+                                <Edit className="w-4 h-4 text-indigo-500" />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Remover esta mensagem?')) return;
+                                  try {
+                                    await api.delete(`/admin/motivational-quotes/${quote.id}`);
+                                    loadData();
+                                  } catch { alert('Erro ao remover mensagem'); }
+                                }}
+                                className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {quotes.length === 0 && (
+                    <div className="p-12 text-center">
+                      <MessageCircle className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
+                      <p className="text-zinc-500 mb-3">Nenhuma mensagem cadastrada</p>
+                      <p className="text-sm text-zinc-400">Clique em "Popular Padrões" para adicionar as 12 mensagens padrão</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Videochamadas - Jitsi Meet */}
             {activeTab === 'settings' && (
               <div>
@@ -1923,6 +2089,109 @@ const AdminPanel: React.FC = () => {
                   className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
                   {editingAchievement ? 'Salvar Alterações' : 'Criar Conquista'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Criação/Edição de Mensagem Motivacional */}
+      {showQuoteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-zinc-900">
+                {editingQuote ? 'Editar Mensagem' : 'Nova Mensagem Motivacional'}
+              </h3>
+              <button onClick={() => setShowQuoteModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Mensagem <span className="text-red-500">*</span></label>
+                <textarea
+                  value={quoteForm.text}
+                  onChange={(e) => setQuoteForm(prev => ({ ...prev, text: e.target.value }))}
+                  placeholder="Ex: A disciplina é a ponte entre objetivos e realizações."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                {quoteForm.text && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm italic text-gray-700">"{quoteForm.text}"</p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Autor <span className="text-zinc-400 font-normal">(opcional)</span></label>
+                <input
+                  type="text"
+                  value={quoteForm.author}
+                  onChange={(e) => setQuoteForm(prev => ({ ...prev, author: e.target.value }))}
+                  placeholder="Ex: Viktor Frankl"
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Categoria</label>
+                <select
+                  value={quoteForm.category}
+                  onChange={(e) => setQuoteForm(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="geral">Geral</option>
+                  <option value="motivacao">Motivação</option>
+                  <option value="disciplina">Disciplina</option>
+                  <option value="recuperacao">Recuperação</option>
+                  <option value="mindset">Mindset</option>
+                  <option value="habitos">Hábitos</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-zinc-700">Mensagem ativa</p>
+                  <p className="text-xs text-zinc-500">Mensagens inativas não aparecem para os utilizadores</p>
+                </div>
+                <button
+                  onClick={() => setQuoteForm(prev => ({ ...prev, isActive: !prev.isActive }))}
+                  className="flex-shrink-0"
+                >
+                  {quoteForm.isActive
+                    ? <ToggleRight className="w-8 h-8 text-green-500" />
+                    : <ToggleLeft className="w-8 h-8 text-zinc-400" />}
+                </button>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowQuoteModal(false)}
+                  className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!quoteForm.text.trim()) { alert('O texto da mensagem é obrigatório'); return; }
+                    try {
+                      if (editingQuote) {
+                        await api.put(`/admin/motivational-quotes/${editingQuote.id}`, quoteForm);
+                      } else {
+                        await api.post('/admin/motivational-quotes', quoteForm);
+                      }
+                      setShowQuoteModal(false);
+                      setEditingQuote(null);
+                      loadData();
+                    } catch { alert('Erro ao guardar mensagem'); }
+                  }}
+                  className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+                >
+                  {editingQuote ? 'Salvar Alterações' : 'Criar Mensagem'}
                 </button>
               </div>
             </div>
