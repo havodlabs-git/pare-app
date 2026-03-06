@@ -24,9 +24,9 @@ export function Stats({
     const weekNumber = i + 1;
     return {
       week: `S${weekNumber}`,
-      days: Math.min(dayCount - (i * 7), 7),
+      dias: Math.min(dayCount - (i * 7), 7),
     };
-  }).filter(d => d.days > 0);
+  }).filter(d => d.dias > 0);
 
   // Calculate success rate
   const totalDaysSinceStart = dayCount + (totalRelapses * 2);
@@ -77,8 +77,10 @@ export function Stats({
                   border: '1px solid var(--border)',
                   borderRadius: '8px'
                 }}
+                formatter={(value: number) => [`${value}`, 'Dias']}
+                labelFormatter={(label: string) => `Semana ${label.replace('S', '')}`}
               />
-              <Bar dataKey="days" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="dias" fill="var(--primary)" radius={[6, 6, 0, 0]} name="Dias" />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -133,7 +135,7 @@ export function Stats({
               <p className="text-sm text-muted-foreground">Média semanal</p>
               <p className="text-lg font-semibold text-foreground">
                 {weeklyData.length > 0 
-                  ? (weeklyData.reduce((sum, w) => sum + w.days, 0) / weeklyData.length).toFixed(1) 
+                  ? (weeklyData.reduce((sum, w) => sum + w.dias, 0) / weeklyData.length).toFixed(1) 
                   : 0} dias
               </p>
             </div>
