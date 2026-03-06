@@ -17,7 +17,9 @@ const FALLBACK_QUOTES = [
   "Força não vem do que você pode fazer. Vem de superar as coisas que você pensou que não poderia.",
 ];
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || "https://pare-app-backend-1073430306643.southamerica-east1.run.app/api";
+const API_BASE = (import.meta as any).env?.VITE_API_URL
+  ? `${(import.meta as any).env.VITE_API_URL}/api`
+  : "https://pare-app-backend-295077330394.us-central1.run.app/api";
 
 export function MotivationalQuotes() {
   const [currentQuote, setCurrentQuote] = useState<{ text: string; author?: string } | null>(null);

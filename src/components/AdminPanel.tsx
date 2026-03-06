@@ -547,7 +547,7 @@ const AdminPanel: React.FC = () => {
     { id: 'professionals', label: 'Psicólogos', icon: UserCheck },
     { id: 'content', label: 'Vícios & Hábitos', icon: Settings },
     { id: 'achievements', label: 'Conquistas', icon: Trophy },
-    { id: 'quotes', label: 'Mensagens', icon: MessageCircle },
+    { id: 'quotes', label: 'Mensagens Motivacionais', icon: MessageCircle },
     { id: 'videochamadas', label: 'Videochamadas', icon: Video },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
