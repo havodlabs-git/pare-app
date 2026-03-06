@@ -356,6 +356,19 @@ export function SeasonDashboard({
           })()}
 
 
+          {/* Visão de Futuro */}
+          {profile.futureVision && (
+            <div className="rounded-2xl p-4 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow">
+                  <Star className="w-3.5 h-3.5 text-white" />
+                </div>
+                <h3 className="font-bold text-amber-800 text-sm">Sua Visão de Futuro</h3>
+              </div>
+              <p className="text-amber-700 text-sm italic leading-relaxed">"{profile.futureVision}"</p>
+            </div>
+          )}
+
           {/* Community CTA */}
           <button
             onClick={onViewForum}

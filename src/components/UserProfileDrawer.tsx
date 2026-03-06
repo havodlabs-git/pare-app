@@ -298,7 +298,7 @@ export function UserProfileDrawer({
                 </div>
                 <div className="flex-1 text-left">
                   <p className="font-semibold text-gray-800 text-sm">Chat</p>
-                  <p className="text-xs text-gray-500">Converse com a IA de suporte</p>
+                  <p className="text-xs text-gray-500">Fale com psicólogos e suporte</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
               </button>
