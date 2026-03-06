@@ -684,10 +684,10 @@ export default function App() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               {/* Bloco Plano + Nível (empilhado em coluna) */}
               {userProfile.plan !== "free" && (
-                <div className="hidden md:flex flex-col items-end gap-0.5 mr-1">
+                <div className="hidden md:flex flex-col items-end gap-0.5">
                   <Badge
                     className={`${
                       userProfile.plan === "premium"
@@ -706,10 +706,15 @@ export default function App() {
                 </div>
               )}
 
+              {/* Divisor vertical */}
+              {userProfile.plan !== "free" && (
+                <div className="hidden md:block w-px h-8 bg-gray-200" />
+              )}
+
               {/* Botão do utilizador — abre o drawer */}
               <button
                 onClick={() => setShowProfileDrawer(true)}
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden flex-shrink-0">
                   {userProfile.behavioralProfile?.avatar || currentUser?.avatar ? (
